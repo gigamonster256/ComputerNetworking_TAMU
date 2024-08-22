@@ -1,5 +1,5 @@
-#ifndef _TCP_SERVER_H_
-#define _TCP_SERVER_H_
+#ifndef _TCP_SERVER_HPP_
+#define _TCP_SERVER_HPP_
 
 #include "common.hpp"
 #include "tcp_client.hpp"
