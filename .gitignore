@@ -31,6 +31,9 @@
 *.out
 *.app
 
+# Debug files
+*.dSYM/
+
 # nix stuff
 result
 .direnv
