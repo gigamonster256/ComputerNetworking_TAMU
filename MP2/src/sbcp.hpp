@@ -68,6 +68,9 @@ typedef class Message {
     void set_message(const char*, size_t) noexcept;
     void set_reason(const char*, size_t) noexcept;
     void set_client_count(payload_t::client_count_t) noexcept;
+
+    friend std::ostream& operator<<(std::ostream& os, const Attribute& attr);
+
     friend class Message;
   } attribute_t;
 
@@ -96,6 +99,7 @@ typedef class Message {
       : version(SBCP_VERSION), type(type), length(0), payload() {}
   void validate() const;
   void validate_version() const;
+  version_t constexpr get_version() const noexcept { return version; }
   type_t constexpr get_type() const noexcept { return type; }
   length_t constexpr get_length() const noexcept { return length; }
 
@@ -155,11 +159,16 @@ typedef class Message {
   const_iterator begin() const { return const_iterator(this); }
   const_iterator end() const { return const_iterator(this, length); }
 
+  friend std::ostream& operator<<(std::ostream& os, const Message& msg);
+
 } message_t;
 
 typedef class Message::Attribute attribute_t;
 typedef enum Message::Attribute::Type attribute_type_t;
 typedef enum Message::Type message_type_t;
+
+std::ostream& operator<<(std::ostream& os, attribute_type_t type);
+std::ostream& operator<<(std::ostream& os, message_type_t type);
 
 }  // namespace sbcp
 
