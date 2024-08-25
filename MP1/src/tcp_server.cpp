@@ -69,6 +69,13 @@ TCPServer& TCPServer::set_handler_mode(TCPClientHandler::handle_mode mode) {
   return *this;
 }
 
+TCPServer& TCPServer::set_max_clients(unsigned int max_clients) {
+  assert(server_pid < 0);
+  assert(max_clients > 0);
+  client_handler.max_clients = max_clients;
+  return *this;
+}
+
 pid_t TCPServer::start() {
   // verify configuration
   assert(server_pid < 0);
@@ -109,7 +116,6 @@ void TCPServer::exec() {
 }
 
 void TCPServer::run_server() {
-
   if (debug_mode) {
     fprintf(stderr, "Starting server process pid: %d\n", getpid());
   }
@@ -207,18 +213,8 @@ void TCPServer::run_server() {
       break;
     }
 
-    if (debug_mode) {
-      fprintf(stderr, "Got new connection... creating TCPClient\n");
-    }
-
-    TCPClient* client = new TCPClient(client_sock_fd, client_addr);
-
-    if (debug_mode) {
-      fprintf(stderr, "Handling connection from %s\n", client->ip());
-    }
-
     // pass client to handler
-    client_handler.handle(client);
+    client_handler.handle(client_sock_fd, client_addr);
   }
 
   if (debug_mode) {
@@ -252,13 +248,12 @@ void TCPServer::stop(bool force) {
 
 // reap all children that have finished
 void TCPServer::TCPClientHandler::reap_children() {
-
   if (debug_mode) {
     fprintf(stderr, "Reaping children\n");
   }
 
   std::vector<pid_t> finished_children;
-  while(pid_t pid = waitpid(-1, nullptr, WNOHANG) > 0) {
+  while (pid_t pid = waitpid(-1, nullptr, WNOHANG) > 0) {
     finished_children.push_back(pid);
   }
 
@@ -278,7 +273,6 @@ void TCPServer::TCPClientHandler::reap_children() {
 
 // wait for all children to finish
 void TCPServer::TCPClientHandler::join_children() {
-
   if (debug_mode) {
     fprintf(stderr, "Joining children\n");
   }
@@ -293,7 +287,6 @@ void TCPServer::TCPClientHandler::join_children() {
 
 // tell all children to terminate
 void TCPServer::TCPClientHandler::terminate_children() {
-
   if (debug_mode) {
     fprintf(stderr, "Terminating children\n");
   }
@@ -309,7 +302,6 @@ void TCPServer::TCPClientHandler::terminate_children() {
 
 // kill all children
 void TCPServer::TCPClientHandler::kill_children() {
-
   if (debug_mode) {
     fprintf(stderr, "Killing children\n");
   }
@@ -319,13 +311,15 @@ void TCPServer::TCPClientHandler::kill_children() {
       perror("TCPServer kill");
     }
   }
-  
+
   join_children();
 }
 
 TCPServer::TCPClientHandler::~TCPClientHandler() { kill_children(); }
 
-void TCPServer::TCPClientHandler::handle(TCPClient* client) {
+void TCPServer::TCPClientHandler::handle(int client_sock_fd,
+                                         struct sockaddr_in6 client_addr) {
+  reap_children();
   if (debug_mode) {
     fprintf(stderr, "mode: %d, current_handler: %d\n", mode, current_handler);
   }
@@ -339,14 +333,35 @@ void TCPServer::TCPClientHandler::handle(TCPClient* client) {
       handler = handlers[rand() % handlers.size()];
       break;
   }
+
+  if (children.size() >= max_clients) {
+    if (debug_mode) {
+      fprintf(stderr, "Max clients reached... dropping connection\n");
+    }
+    close(client_sock_fd);
+    return;
+  }
+
   auto pid = fork();
   if (pid < 0) {
     perror("TCPClientHandler fork");
+    return;
   }
   if (pid == 0) {
     if (debug_mode) {
+      fprintf(stderr, "Got new connection... creating TCPClient\n");
+    }
+
+    TCPClient* client = new TCPClient(client_sock_fd, client_addr);
+
+    if (debug_mode) {
+      fprintf(stderr, "Handling connection from %s\n", client->peer_ip());
+    }
+
+    if (debug_mode) {
       fprintf(stderr, "Calling handler\n");
     }
+
     handler(client);
     delete client;
     exit(EXIT_SUCCESS);

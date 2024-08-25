@@ -18,6 +18,9 @@ mkfifo client1.out
 mkfifo client2.in
 mkfifo client2.out
 
+# wait for the server to start
+sleep 1
+
 ../src/echo 127.0.0.1 $port < client1.in > client1.out &
 ../src/echo 127.0.0.1 $port < client2.in > client2.out &
 

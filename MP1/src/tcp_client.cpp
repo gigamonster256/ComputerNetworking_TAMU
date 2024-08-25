@@ -1,16 +1,18 @@
 #include "tcp_client.hpp"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
+
+#include <cassert>
+#include <chrono>
 
 TCPClient::TCPClient(int sockfd, sockaddr_in6 client_addr) : sockfd(sockfd) {
-  if (inet_ntop(AF_INET6, &client_addr.sin6_addr, ip_addr, sizeof(ip_addr)) ==
-      NULL) {
+  if (inet_ntop(AF_INET6, &client_addr.sin6_addr, peer_ip_addr,
+                sizeof(peer_ip_addr)) == NULL) {
     perror("TCPClient inet_ntop");
-    exit(EXIT_FAILURE);
   }
 }
 
@@ -73,23 +75,49 @@ TCPClient::~TCPClient() {
   }
 }
 
-ssize_t TCPClient::writen(void *msgbuf, size_t len) {
+size_t TCPClient::writen(void *msgbuf, size_t len) {
   size_t n = 0;
   while (n < len) {
-    ssize_t n_written = write(sockfd, (char *)msgbuf + n, len - n);
+    ssize_t n_written = ::write(sockfd, (char *)msgbuf + n, len - n);
     if (n_written < 0) {
       if (errno == EINTR) {
         continue;
       }
       perror("TCPClient write");
-      return n_written;
+      exit(EXIT_FAILURE);
     }
     n += n_written;
+  }
+  if (n < len) {
+    fprintf(stderr, "TCPClient writen: short write\n");
+    exit(EXIT_FAILURE);
   }
   return n;
 }
 
-ssize_t TCPClient::readline(void *msgbuf, size_t maxlen) {
+size_t TCPClient::readn(void *msgbuf, size_t len) {
+  size_t n = 0;
+  while (n < len) {
+    ssize_t n_read = ::read(sockfd, (char *)msgbuf + n, len - n);
+    if (n_read < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      perror("TCPClient read");
+      exit(EXIT_FAILURE);
+    } else if (n_read == 0) {
+      break;
+    }
+    n += n_read;
+  }
+  if (n < len) {
+    fprintf(stderr, "TCPClient readn: short read\n");
+    exit(EXIT_FAILURE);
+  }
+  return n;
+}
+
+size_t TCPClient::readline(void *msgbuf, size_t maxlen) {
   size_t n_read = 0;
   while (n_read < maxlen - 1) {
     ssize_t n = ::read(sockfd, (char *)msgbuf + n_read, 1);
@@ -98,7 +126,7 @@ ssize_t TCPClient::readline(void *msgbuf, size_t maxlen) {
         continue;
       }
       perror("TCPClient read");
-      return n;
+      exit(EXIT_FAILURE);
     } else if (n == 0) {
       break;
     }
@@ -107,15 +135,73 @@ ssize_t TCPClient::readline(void *msgbuf, size_t maxlen) {
       break;
     }
   }
+  if (((char *)msgbuf)[n_read - 1] != '\n') {
+    fprintf(stderr, "TCPClient readline: no newline recieved\n");
+    exit(EXIT_FAILURE);
+  }
   ((char *)msgbuf)[n_read] = '\0';
   return n_read;
 }
 
-ssize_t TCPClient::read(void *msgbuf, size_t len) {
-  ssize_t n_read = ::read(sockfd, msgbuf, len);
-  if (n_read < 0) {
-    perror("TCPClient read");
-    return n_read;
-  }
+ssize_t TCPClient::write(void *msgbuf, size_t maxlen) {
+  ssize_t n_written = ::write(sockfd, msgbuf, maxlen);
+  return n_written;
+}
+
+ssize_t TCPClient::read(void *msgbuf, size_t maxlen) {
+  ssize_t n_read = ::read(sockfd, msgbuf, maxlen);
   return n_read;
+}
+
+ssize_t TCPClient::readn_timeout(void *msgbuf, size_t len, int timeout_sec) {
+  ssize_t n = select(timeout_sec);
+  if (n < 0) {
+    perror("TCPClient select");
+    exit(EXIT_FAILURE);
+  } else if (n == 0) {
+    errno = ETIMEDOUT;
+    return -1;
+  }
+  return readn(msgbuf, len);
+}
+
+ssize_t TCPClient::readline_timeout(void *msgbuf, size_t maxlen,
+                                    int timeout_sec) {
+  ssize_t n = select(timeout_sec);
+  if (n < 0) {
+    perror("TCPClient select");
+    exit(EXIT_FAILURE);
+  } else if (n == 0) {
+    errno = ETIMEDOUT;
+    return -1;
+  }
+  return readline(msgbuf, maxlen);
+}
+
+ssize_t TCPClient::read_timeout(void *msgbuf, size_t maxlen, int timeout_sec) {
+  ssize_t n = select(timeout_sec);
+  if (n < 0) {
+    perror("TCPClient select");
+    exit(EXIT_FAILURE);
+  } else if (n == 0) {
+    errno = ETIMEDOUT;
+    return -1;
+  }
+  return read(msgbuf, maxlen);
+}
+
+int TCPClient::select(int timeout_sec, bool include_stdin) {
+  fd_set fds;
+  FD_ZERO(&fds);
+  FD_SET(sockfd, &fds);
+  if (include_stdin) {
+    FD_SET(STDIN_FILENO, &fds);
+  }
+
+  struct timeval tv;
+  tv.tv_sec = timeout_sec;
+  tv.tv_usec = 0;
+
+  int n = ::select(sockfd + 1, &fds, NULL, NULL, &tv);
+  return n;
 }

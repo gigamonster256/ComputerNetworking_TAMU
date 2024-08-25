@@ -15,7 +15,7 @@ void usage(const char *progname) {
 
 void echo_handler(TCPClient *client) {
   fprintf(stderr, "I am echo_handler with pid %d\n", getpid());
-  fprintf(stderr, "Accepted connection from %s\n", client->ip());
+  fprintf(stderr, "Accepted connection from %s\n", client->peer_ip());
   char buffer[1024];
   while (true) {
     int bytes_read = client->read(buffer, sizeof(buffer));
@@ -38,7 +38,7 @@ void echo_handler(TCPClient *client) {
 
 void ohce_handler(TCPClient *client) {
   fprintf(stderr, "I am ohce_handler with pid %d\n", getpid());
-  fprintf(stderr, "Accepted connection from %s\n", client->ip());
+  fprintf(stderr, "Accepted connection from %s\n", client->peer_ip());
   char buffer[1024];
   while (true) {
     // read an entire line (nescessary to know when string ends)
