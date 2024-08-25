@@ -1,6 +1,9 @@
 #ifndef _TCP_SERVER_HPP_
 #define _TCP_SERVER_HPP_
 
+#include <mutex>
+#include <vector>
+
 #include "common.hpp"
 #include "tcp_client.hpp"
 
@@ -14,72 +17,85 @@ class TCPServer {
     enum handle_mode { RoundRobin, Random };
 
    private:
-    int max_handlers;
-    int num_handlers;
-    ClientHandlerFunction* handlers;
-    int current_handler;
+    // operational data
+    unsigned int current_handler;
+    std::vector<pid_t> children;
+
+    // configuration data
+    unsigned int max_clients;
+    std::vector<ClientHandlerFunction> handlers;
     handle_mode mode;
+    bool debug_mode;
 
-   public:
-    TCPClientHandler();
-    TCPClientHandler(const TCPClientHandler&) = delete;
-    TCPClientHandler(TCPClientHandler&&) = delete;
-    TCPClientHandler& operator=(const TCPClientHandler&) = delete;
+    TCPClientHandler()
+        : current_handler(0),
+          max_clients(5),
+          handlers(),
+          mode(RoundRobin),
+          debug_mode(false) {}
     ~TCPClientHandler();
-    void add_handler(ClientHandlerFunction handler);
-    void set_mode(handle_mode mode);
-    friend class TCPServer;
+    void set_max_clients(unsigned int max) { max_clients = max; }
+    void add_handler(ClientHandlerFunction handler) {
+      handlers.push_back(handler);
+    }
+    void set_mode(handle_mode mode) { this->mode = mode; }
+    void debug(bool mode) { debug_mode = mode; }
 
-   private:
-    pid_t handle(TCPClient* client);
+    void handle(TCPClient* client);
+    void reap_children();
+    void join_children();
+    void terminate_children();
+    void kill_children();
+
+    friend class TCPServer;
   };
 
  private:
-  int port_no;
-  ip_version version;
+  // operational data
   int server_sock_fd;
   TCPClientHandler client_handler;
-  int timeout;
-  int max_timeouts;
-  int timeout_counter;
-  TimeoutFunction timeout_handler;
-  int backlog;
-  static bool debug_mode;
-  pid_t* child_pids;
-  int num_children;
-  int max_children;
   pid_t server_pid;
-  bool sock_opened;
-  static bool should_exit;
+  unsigned int timeout_count;
+
+  // configuration data
+  unsigned int port_no;
+  unsigned int timeout;
+  unsigned int max_timeouts;
+  unsigned int backlog;
+  bool debug_mode;
+  TimeoutFunction timeout_handler;
 
  public:
-  // bind to port on all interfaces
-  TCPServer();
-  TCPServer(const TCPServer&) = delete;
-  TCPServer(TCPServer&&) = delete;
-  TCPServer& operator=(const TCPServer&) = delete;
+  TCPServer()
+      : server_sock_fd(-1),
+        server_pid(-1),
+        port_no(-1),
+        timeout(1),
+        max_timeouts(0),
+        backlog(5),
+        debug_mode(false),
+        timeout_handler(nullptr) {}
   ~TCPServer();
 
-  TCPServer& set_port(int port_no);
+  // server configuration
+  TCPServer& set_port(unsigned int port_no);
+  TCPServer& set_timeout(unsigned int seconds);
+  TCPServer& set_max_timeouts(unsigned int seconds);
+  TCPServer& set_backlog(unsigned int size);
+  TCPServer& debug(bool mode);
+  TCPServer& set_timeout_handler(TimeoutFunction handler);
+
+  // client handler configuration
   TCPServer& add_handler(ClientHandlerFunction handler);
   TCPServer& set_handler_mode(TCPClientHandler::handle_mode mode);
-  TCPServer& set_timeout(int seconds);
-  TCPServer& set_max_timeouts(int seconds);
-  TCPServer& set_timeout_handler(TimeoutFunction handler);
-  TCPServer& set_backlog(int size);
-  TCPServer& debug(bool mode);
+
+  // server operation
   pid_t start();
   void exec();
-  void stop();
+  void stop(bool force = false);
 
  private:
-  void start_server();
-  void modification_after_start_error(const char* method);
-  void add_child(pid_t pid);
-  void reap_children();
-  void join_children();
-  bool started() { return server_pid != -1; }
+  void run_server();
 };
-
 
 #endif

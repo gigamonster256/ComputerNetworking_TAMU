@@ -7,127 +7,89 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <cassert>
 #include <utility>
 
-bool TCPServer::should_exit = false;
-bool TCPServer::debug_mode = false;
-
-TCPServer::TCPServer()
-    : port_no(-1),
-      version(IPv6),
-      server_sock_fd(-1),
-      timeout(1),
-      max_timeouts(0),
-      timeout_handler(NULL),
-      backlog(5),
-      num_children(0),
-      max_children(1),
-      server_pid(-1),
-      sock_opened(false) {
-  child_pids = new pid_t[max_children];
-}
-
 TCPServer::~TCPServer() {
-  delete[] child_pids;
-  // socket closed in join_children
+  if (server_sock_fd >= 0) {
+    stop(true);
+  }
 }
 
-TCPServer& TCPServer::set_port(int port_no) {
-  modification_after_start_error("set_port");
+TCPServer& TCPServer::set_port(unsigned int port_no) {
+  assert(server_pid < 0);
+  assert(port_no > 0);
   this->port_no = port_no;
   return *this;
 }
 
-TCPServer& TCPServer::add_handler(ClientHandlerFunction func) {
-  modification_after_start_error("add_handler");
-  client_handler.add_handler(func);
+TCPServer& TCPServer::set_timeout(unsigned int timeout) {
+  assert(server_pid < 0);
+  assert(timeout >= 0);
+  this->timeout = timeout;
   return *this;
 }
 
-TCPServer& TCPServer::set_handler_mode(TCPClientHandler::handle_mode mode) {
-  modification_after_start_error("set_handler_mode");
-  client_handler.set_mode(mode);
+TCPServer& TCPServer::set_max_timeouts(unsigned int max_timeouts) {
+  assert(server_pid < 0);
+  assert(max_timeouts >= 0);
+  this->max_timeouts = max_timeouts;
   return *this;
 }
 
-TCPServer& TCPServer::set_timeout(int seconds) {
-  if (seconds <= 0) {
-    fprintf(stderr, "TCPServer Error: timeout must be > 0\n");
-    return *this;
-  }
-  modification_after_start_error("set_timeout");
-  timeout = seconds;
-  return *this;
-}
-
-TCPServer& TCPServer::set_max_timeouts(int seconds) {
-  modification_after_start_error("set_max_timeouts");
-  max_timeouts = seconds;
-  return *this;
-}
-
-void TCPServer::modification_after_start_error(const char* method) {
-  if (started()) {
-    fprintf(stderr, "TCPServer Error: %s called after server started\n",
-            method);
-  }
-}
-
-TCPServer& TCPServer::set_timeout_handler(TimeoutFunction handler) {
-  modification_after_start_error("set_timeout_handler");
-  timeout_handler = handler;
-  return *this;
-}
-
-TCPServer& TCPServer::set_backlog(int size) {
-  modification_after_start_error("set_backlog");
-  backlog = size;
+TCPServer& TCPServer::set_backlog(unsigned int backlog) {
+  assert(server_pid < 0);
+  assert(backlog > 0);
+  this->backlog = backlog;
   return *this;
 }
 
 TCPServer& TCPServer::debug(bool mode) {
-  debug_mode = mode;
+  assert(server_pid < 0);
+  this->debug_mode = mode;
+  client_handler.debug(mode);
+  return *this;
+}
+
+TCPServer& TCPServer::set_timeout_handler(TimeoutFunction handler) {
+  assert(server_pid < 0);
+  this->timeout_handler = handler;
+  return *this;
+}
+
+TCPServer& TCPServer::add_handler(ClientHandlerFunction handler) {
+  assert(server_pid < 0);
+  client_handler.add_handler(handler);
+  return *this;
+}
+
+TCPServer& TCPServer::set_handler_mode(TCPClientHandler::handle_mode mode) {
+  assert(server_pid < 0);
+  client_handler.set_mode(mode);
   return *this;
 }
 
 pid_t TCPServer::start() {
-  if (started()) {
-    fprintf(stderr,
-            "TCPServer Warning: start called when server already started\n");
+  // verify configuration
+  assert(server_pid < 0);
+  assert(port_no > 0);
+  assert(timeout >= 0);
+  assert(max_timeouts >= 0);
+  assert(backlog > 0);
+  assert(client_handler.max_clients > 0);
+  assert(client_handler.handlers.size() > 0);
+
+  server_pid = fork();
+
+  if (server_pid < 0) {
+    perror("TCPServer fork");
     return server_pid;
   }
 
-  if (port_no == -1) {
-    fprintf(stderr, "TCPServer Error: port number not set\n");
-    exit(EXIT_FAILURE);
-  }
-  if (version == IPv4) {
-    fprintf(stderr, "TCPServer Error: IPv4 not supported\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if (client_handler.num_handlers == 0) {
-    fprintf(stderr, "TCPServer Error: no handlers added\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if (debug_mode) {
-    fprintf(stderr, "Starting TCPServer\n");
-  }
-
-  auto pid = fork();
-
-  if (pid < 0) {
-    perror("TCPServer fork");
-    return pid;
-  }
-
-  if (pid == 0) {
-    start_server();
+  if (server_pid == 0) {
+    run_server();
     exit(EXIT_SUCCESS);
   }
-
-  server_pid = pid;
 
   return server_pid;
 }
@@ -135,20 +97,21 @@ pid_t TCPServer::start() {
 void TCPServer::exec() {
   auto pid = start();
 
-  if (debug_mode) {
-    fprintf(stderr, "Waiting for server process to exit\n");
+  if (pid < 0) {
+    perror("TCPServer exec");
+    exit(EXIT_FAILURE);
   }
 
-  int status;
-  if (waitpid(pid, &status, 0) < 0) {
+  if (waitpid(pid, nullptr, 0) < 0) {
     perror("TCPServer waitpid");
   }
+  exit(EXIT_SUCCESS);
 }
 
-void TCPServer::start_server() {
+void TCPServer::run_server() {
 
   if (debug_mode) {
-    fprintf(stderr, "Starting server process\n");
+    fprintf(stderr, "Starting server process pid: %d\n", getpid());
   }
 
   server_sock_fd = socket(AF_INET6, SOCK_STREAM, 0);
@@ -156,8 +119,6 @@ void TCPServer::start_server() {
     perror("TCPServer socket");
     exit(EXIT_FAILURE);
   }
-
-  sock_opened = true;
 
   struct sockaddr_in6 server_addr;
   memset(&server_addr, 0, sizeof(server_addr));
@@ -168,11 +129,13 @@ void TCPServer::start_server() {
   if (bind(server_sock_fd, (struct sockaddr*)&server_addr,
            sizeof(server_addr)) < 0) {
     perror("TCPServer bind");
+    close(server_sock_fd);
     exit(EXIT_FAILURE);
   }
 
   if (listen(server_sock_fd, backlog) < 0) {
     perror("TCPServer listen");
+    close(server_sock_fd);
     exit(EXIT_FAILURE);
   }
 
@@ -180,8 +143,8 @@ void TCPServer::start_server() {
     fprintf(stderr, "TCPServer started on port %d\n", port_no);
   }
 
-  while (true && !should_exit) {
-    reap_children();
+  while (true) {
+    client_handler.reap_children();
 
     if (timeout > 0) {
       fd_set read_fds;
@@ -203,6 +166,8 @@ void TCPServer::start_server() {
         if (errno == EINTR) {
           continue;
         }
+        // stop server on error
+        break;
       }
 
       if (ret == 0) {
@@ -210,25 +175,28 @@ void TCPServer::start_server() {
           fprintf(stderr, "TCPServer timeout\n");
         }
 
-        timeout_counter++;
-        if (timeout_handler != NULL) {
+        timeout_count++;
+        // call timeout handler
+        if (timeout_handler != nullptr) {
           if (debug_mode) {
             fprintf(stderr, "Calling timeout handler\n");
           }
           timeout_handler();
-          continue;
         }
-        if (max_timeouts > 0 && timeout_counter >= max_timeouts) {
+        if (max_timeouts > 0 && timeout_count >= max_timeouts) {
           if (debug_mode) {
             fprintf(stderr, "Max timeouts reached\n");
           }
+          // stop server on max timeouts
           break;
         }
+        // continue waiting for connections
         continue;
       }
     }
 
-    timeout_counter = 0;
+    // socket is ready to accept a new connection
+    timeout_count = 0;
 
     struct sockaddr_in6 client_addr;
     socklen_t client_addr_len = sizeof(client_addr);
@@ -236,7 +204,7 @@ void TCPServer::start_server() {
                                 &client_addr_len);
     if (client_sock_fd < 0) {
       perror("TCPServer accept");
-      exit(EXIT_FAILURE);
+      break;
     }
 
     if (debug_mode) {
@@ -249,152 +217,142 @@ void TCPServer::start_server() {
       fprintf(stderr, "Handling connection from %s\n", client->ip());
     }
 
-    auto pid = client_handler.handle(client);
-    if (pid < 0) {
-      perror("TCPServer client_handler");
-      delete client;
-      continue;
-    }
-
-    add_child(pid);
+    // pass client to handler
+    client_handler.handle(client);
   }
 
   if (debug_mode) {
     fprintf(stderr, "Stopping server thread\n");
   }
-  join_children();
+
+  client_handler.join_children();
 }
 
-void TCPServer::add_child(pid_t pid) {
-  if (num_children == max_children) {
-    max_children *= 2;
-    pid_t* new_child_pids = new pid_t[max_children];
-    memcpy(new_child_pids, child_pids, num_children * sizeof(pid_t));
-    delete[] child_pids;
-    child_pids = new_child_pids;
-  }
-  child_pids[num_children++] = pid;
-}
-
-void TCPServer::reap_children() {
-  if (debug_mode) {
-    fprintf(stderr, "Checking for exited child processes\n");
-  }
-  for (int i = 0; i < num_children; i++) {
-    int status;
-    if (waitpid(child_pids[i], &status, WNOHANG) > 0) {
-      if (debug_mode) {
-        fprintf(stderr, "Child process %d exited\n", child_pids[i]);
-      }
-      for (int j = i; j < num_children - 1; j++) {
-        child_pids[j] = child_pids[j + 1];
-      }
-      num_children--;
-      i--;
-    }
-  }
-}
-
-void TCPServer::join_children() {
-  // stop accepting new connections
-  if (sock_opened && (server_sock_fd) < 0) {
-    perror("TCPServer close");
-  }
-
-  if (debug_mode) {
-    fprintf(stderr, "Closed server socket\n");
-  }
-
-  if (debug_mode && num_children > 0) {
-    fprintf(stderr, "Waiting for all child processes to exit\n");
-    fprintf(stderr, "num_children: %d\n", num_children);
-  }
-  for (int i = 0; i < num_children; i++) {
-    int status;
-    if (waitpid(child_pids[i], &status, 0) < 0) {
-      perror("TCPServer waitpid");
-    }
-  }
-}
-
-void TCPServer::stop() {
-  if (!started()) {
-    fprintf(stderr, "TCPServer Warning: stop called when server not started\n");
+void TCPServer::stop(bool force) {
+  if (server_pid < 0) {
     return;
   }
 
-  if (debug_mode) {
-    fprintf(stderr, "Stopping TCPServer\n");
-  }
-
-  if (kill(server_pid, SIGTERM) < 0) {
-    perror("TCPServer kill");
-  }
-  waitpid(server_pid, NULL, 0);
-}
-
-TCPServer::TCPClientHandler::TCPClientHandler()
-    : max_handlers(1),
-      num_handlers(0),
-      handlers(NULL),
-      current_handler(0),
-      mode(RoundRobin) {
-  handlers = new ClientHandlerFunction[max_handlers];
-}
-
-TCPServer::TCPClientHandler::~TCPClientHandler() { delete[] handlers; }
-
-void TCPServer::TCPClientHandler::add_handler(ClientHandlerFunction handler) {
-  if (TCPServer::debug_mode) {
-    fprintf(stderr, "Adding handler\n");
-  }
-  if (num_handlers == max_handlers) {
-    if (TCPServer::debug_mode) {
-      fprintf(stderr, "Resizing handlers array\n");
+  if (force) {
+    if (kill(server_pid, SIGKILL) < 0) {
+      perror("TCPServer kill");
     }
-    max_handlers *= 2;
-    ClientHandlerFunction* new_handlers =
-        new ClientHandlerFunction[max_handlers];
-    memcpy(new_handlers, handlers,
-           num_handlers * sizeof(ClientHandlerFunction));
-    delete[] handlers;
-    handlers = new_handlers;
+  } else {
+    if (kill(server_pid, SIGTERM) < 0) {
+      perror("TCPServer kill");
+    }
   }
-  handlers[num_handlers++] = handler;
-  if (TCPServer::debug_mode) {
-    fprintf(stderr, "Handler added... %d installed\n", num_handlers);
+
+  if (waitpid(server_pid, nullptr, 0) < 0) {
+    perror("TCPServer waitpid");
   }
+
+  server_pid = -1;
 }
 
-void TCPServer::TCPClientHandler::set_mode(handle_mode mode) {
-  this->mode = mode;
+// reap all children that have finished
+void TCPServer::TCPClientHandler::reap_children() {
+
+  if (debug_mode) {
+    fprintf(stderr, "Reaping children\n");
+  }
+
+  std::vector<pid_t> finished_children;
+  while(pid_t pid = waitpid(-1, nullptr, WNOHANG) > 0) {
+    finished_children.push_back(pid);
+  }
+
+  if (debug_mode) {
+    fprintf(stderr, "Reaped %lu children\n", finished_children.size());
+  }
+
+  children.erase(std::remove_if(children.begin(), children.end(),
+                                [&finished_children](pid_t pid) {
+                                  return std::find(finished_children.begin(),
+                                                   finished_children.end(),
+                                                   pid) !=
+                                         finished_children.end();
+                                }),
+                 children.end());
 }
 
-pid_t TCPServer::TCPClientHandler::handle(TCPClient* client) {
-  if (TCPServer::debug_mode) {
+// wait for all children to finish
+void TCPServer::TCPClientHandler::join_children() {
+
+  if (debug_mode) {
+    fprintf(stderr, "Joining children\n");
+  }
+
+  for (unsigned int i = 0; i < children.size(); i++) {
+    if (waitpid(children[i], nullptr, 0) < 0) {
+      perror("TCPServer waitpid");
+    }
+  }
+  children.clear();
+}
+
+// tell all children to terminate
+void TCPServer::TCPClientHandler::terminate_children() {
+
+  if (debug_mode) {
+    fprintf(stderr, "Terminating children\n");
+  }
+
+  for (unsigned int i = 0; i < children.size(); i++) {
+    if (kill(children[i], SIGTERM) < 0) {
+      perror("TCPServer kill");
+    }
+  }
+
+  join_children();
+}
+
+// kill all children
+void TCPServer::TCPClientHandler::kill_children() {
+
+  if (debug_mode) {
+    fprintf(stderr, "Killing children\n");
+  }
+
+  for (unsigned int i = 0; i < children.size(); i++) {
+    if (kill(children[i], SIGKILL) < 0) {
+      perror("TCPServer kill");
+    }
+  }
+  
+  join_children();
+}
+
+TCPServer::TCPClientHandler::~TCPClientHandler() { kill_children(); }
+
+void TCPServer::TCPClientHandler::handle(TCPClient* client) {
+  if (debug_mode) {
     fprintf(stderr, "mode: %d, current_handler: %d\n", mode, current_handler);
   }
   ClientHandlerFunction handler;
   switch (mode) {
     case RoundRobin:
       handler = handlers[current_handler];
-      current_handler = (current_handler + 1) % num_handlers;
+      current_handler = (current_handler + 1) % handlers.size();
       break;
     case Random:
-      handler = handlers[rand() % num_handlers];
+      handler = handlers[rand() % handlers.size()];
       break;
   }
   auto pid = fork();
   if (pid < 0) {
     perror("TCPClientHandler fork");
-    return pid;
   }
   if (pid == 0) {
-    if (TCPServer::debug_mode) {
+    if (debug_mode) {
       fprintf(stderr, "Calling handler\n");
     }
     handler(client);
+    delete client;
     exit(EXIT_SUCCESS);
   }
-  return pid;
+  if (debug_mode) {
+    fprintf(stderr, "Adding child pid: %d\n", pid);
+  }
+  children.push_back(pid);
 }
