@@ -8,16 +8,16 @@ clean :
 	rm -f *.o
 	rm -rf *.dSYM
 
-echos: server.cpp common.hpp tcp_client.o tcp_server.o
+echos: server.cpp tcp_client.o tcp_server.o
 	$(CXX) $(CXXFLAGS) -o echos server.cpp tcp_client.o tcp_server.o
 
-echo: client.cpp common.hpp tcp_client.o 
+echo: client.cpp tcp_client.o 
 	$(CXX) $(CXXFLAGS) -o echo client.cpp tcp_client.o
 
-tcp_server.o: tcp_server.cpp
+tcp_server.o: tcp_server.cpp common.hpp
 	$(CXX) $(CXXFLAGS) -c tcp_server.cpp
 
-tcp_client.o: tcp_client.cpp
+tcp_client.o: tcp_client.cpp common.hpp
 	$(CXX) $(CXXFLAGS) -c tcp_client.cpp
 
 

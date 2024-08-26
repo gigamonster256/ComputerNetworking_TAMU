@@ -13,9 +13,9 @@ void usage(const char *progname) {
   exit(EXIT_FAILURE);
 }
 
-void echo_handler(TCPClient *client) {
-  fprintf(stderr, "I am echo_handler with pid %d\n", getpid());
-  fprintf(stderr, "Accepted connection from %s\n", client->peer_ip());
+void echo_handler(TCPClient *client, void*) {
+  // fprintf(stderr, "I am echo_handler with pid %d\n", getpid());
+  // fprintf(stderr, "Accepted connection from %s\n", client->peer_ip());
   char buffer[1024];
   while (true) {
     int bytes_read = client->read(buffer, sizeof(buffer));
@@ -24,7 +24,7 @@ void echo_handler(TCPClient *client) {
       break;
     }
     if (bytes_read == 0) {
-      fprintf(stderr, "Connection closed by client\n");
+      // fprintf(stderr, "Connection closed by client\n");
       break;
     }
 
@@ -37,8 +37,8 @@ void echo_handler(TCPClient *client) {
 }
 
 void ohce_handler(TCPClient *client) {
-  fprintf(stderr, "I am ohce_handler with pid %d\n", getpid());
-  fprintf(stderr, "Accepted connection from %s\n", client->peer_ip());
+  // fprintf(stderr, "I am ohce_handler with pid %d\n", getpid());
+  // fprintf(stderr, "Accepted connection from %s\n", client->peer_ip());
   char buffer[1024];
   while (true) {
     // read an entire line (nescessary to know when string ends)
@@ -48,7 +48,7 @@ void ohce_handler(TCPClient *client) {
       break;
     }
     if (bytes_read == 0) {
-      fprintf(stderr, "Connection closed by client\n");
+      // fprintf(stderr, "Connection closed by client\n");
       break;
     }
 
@@ -68,7 +68,7 @@ void ohce_handler(TCPClient *client) {
 }
 
 void timeout_handler() {
-  fprintf(stderr, "No client in the last select interval\n");
+  // fprintf(stderr, "No client in the last select interval\n");
 }
 
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
   server.set_port(port)
       .add_handler(echo_handler)
       // .set_timeout(100)
-      .set_timeout_handler(timeout_handler)
+      // .set_timeout_handler(timeout_handler)
       // .debug(true)
       .exec();
 }

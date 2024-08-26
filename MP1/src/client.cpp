@@ -2,7 +2,6 @@
 
 #include <iostream>
 
-#include "common.hpp"
 #include "tcp_client.hpp"
 
 void usage(const char *progname) {

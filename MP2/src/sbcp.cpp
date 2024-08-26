@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
-#include <stdexcept>
 #include <utility>
 
 namespace sbcp {
@@ -21,7 +20,7 @@ Message::Attribute::Attribute(type_t type, const char* value, size_t length)
       set_reason(value, length);
       break;
     default:
-      throw std::runtime_error("Invalid attribute type");
+      throw MessageException("Invalid attribute type");
   }
 }
 
@@ -38,7 +37,7 @@ Message::Attribute::Attribute(type_t type, const char* value)
       set_reason(value, std::strlen(value));
       break;
     default:
-      throw std::runtime_error("Invalid attribute type");
+      throw MessageException("Invalid attribute type");
   }
 }
 
@@ -52,26 +51,26 @@ void Message::Attribute::validate() const {
   switch (type) {
     case type_t::USERNAME:
       if (length > SBCP_MAX_USERNAME_LENGTH) {
-        throw std::runtime_error("Username length exceeds maximum length");
+        throw MessageException("Username length exceeds maximum length");
       }
       break;
     case type_t::MESSAGE:
       if (length > SBCP_MAX_MESSAGE_LENGTH) {
-        throw std::runtime_error("Message length exceeds maximum length");
+        throw MessageException("Message length exceeds maximum length");
       }
       break;
     case type_t::REASON:
       if (length > SBCP_MAX_REASON_LENGTH) {
-        throw std::runtime_error("Reason length exceeds maximum length");
+        throw MessageException("Reason length exceeds maximum length");
       }
       break;
     case type_t::CLIENT_COUNT:
       if (length != sizeof(payload_t::client_count_t)) {
-        throw std::runtime_error("Invalid client count length");
+        throw MessageException("Invalid client count length");
       }
       break;
     default:
-      throw std::runtime_error("Invalid attribute type");
+      throw MessageException("Invalid attribute type");
   }
 }
 
@@ -113,38 +112,133 @@ void Message::Attribute::set_client_count(
 
 void Message::validate() const {
   validate_version();
-  if (length > SBCP_MAX_PAYLOAD_LENGTH) {
-    throw std::runtime_error("Payload length exceeds maximum length");
+  if (header.length > SBCP_MAX_PAYLOAD_LENGTH) {
+    throw MessageException("Payload length exceeds maximum length");
   }
 }
 
 void Message::validate_version() const {
-  if (version != SBCP_VERSION) {
-    throw std::runtime_error("Invalid version");
+  if (header.version != SBCP_VERSION) {
+    throw MessageException("Invalid version");
   }
 }
 
 void Message::add_attribute(const attribute_t& attr) {
   validate();
-  if (length + attr.size() > SBCP_MAX_PAYLOAD_LENGTH) {
-    throw std::runtime_error("Payload length exceeds maximum length");
+  if (header.length + attr.size() > SBCP_MAX_PAYLOAD_LENGTH) {
+    throw MessageException("Payload length exceeds maximum length");
   }
-  std::memcpy(payload + length, &attr, attr.size());
-  length += attr.size();
+  std::memcpy(payload + header.length, &attr, attr.size());
+  header.length += attr.size();
 }
 
 void Message::add_attribute(attribute_t::type_t type, const char* value,
                             size_t length) {
+  assert(type == attribute_t::type_t::USERNAME ||
+          type == attribute_t::type_t::MESSAGE ||
+          type == attribute_t::type_t::REASON);
   add_attribute(attribute_t(type, value, length));
 }
 
 void Message::add_attribute(attribute_t::type_t type, const char* value) {
+  assert(type == attribute_t::type_t::USERNAME ||
+         type == attribute_t::type_t::MESSAGE ||
+         type == attribute_t::type_t::REASON);
   add_attribute(attribute_t(type, value));
 }
 
 void Message::add_attribute(attribute_t::type_t type,
                             attribute_t::payload_t::client_count_t value) {
+  assert(type == attribute_t::type_t::CLIENT_COUNT);
   add_attribute(attribute_t(type, value));
+}
+
+void Message::add_username(const char* value, size_t length) {
+  add_attribute(attribute_t::type_t::USERNAME, value, length);
+}
+
+void Message::add_username(const char* value) {
+  add_attribute(attribute_t::type_t::USERNAME, value);
+}
+
+void Message::add_message(const char* value, size_t length) {
+  add_attribute(attribute_t::type_t::MESSAGE, value, length);
+}
+
+void Message::add_message(const char* value) {
+  add_attribute(attribute_t::type_t::MESSAGE, value);
+}
+
+void Message::add_reason(const char* value, size_t length) {
+  add_attribute(attribute_t::type_t::REASON, value, length);
+}
+
+void Message::add_reason(const char* value) {
+  add_attribute(attribute_t::type_t::REASON, value);
+}
+
+void Message::add_client_count(attribute_t::payload_t::client_count_t value) {
+  add_attribute(attribute_t::type_t::CLIENT_COUNT, value);
+}
+
+void Message::change_to_fwd(const char* username, size_t length) {
+  assert(header.type == message_type_t::SEND);
+  header.type = message_type_t::FWD;
+  add_username(username, length);
+}
+
+void Message::change_to_fwd(const char* username) {
+  assert(header.type == message_type_t::SEND);
+  header.type = message_type_t::FWD;
+  add_username(username);
+}
+
+void Message::change_to_fwd(const std::string& username) {
+  change_to_fwd(username.c_str(), username.length());
+}
+
+std::vector<std::string> Message::get_usernames() const {
+  std::vector<std::string> usernames;
+  for (const auto& attr : *this) {
+    if (attr.get_type() == attribute_t::type_t::USERNAME) {
+      usernames.push_back(attr.get_username());
+    }
+  }
+  if (usernames.empty()) {
+    throw MessageException("Username attribute not found");
+  }
+  return usernames;
+}
+
+std::string Message::get_username() const {
+  return get_usernames().front();
+}
+
+std::string Message::get_message() const {
+  for (const auto& attr : *this) {
+    if (attr.get_type() == attribute_t::type_t::MESSAGE) {
+      return attr.get_message();
+    }
+  }
+  throw MessageException("Message attribute not found");
+}
+
+std::string Message::get_reason() const {
+  for (const auto& attr : *this) {
+    if (attr.get_type() == attribute_t::type_t::REASON) {
+      return attr.get_reason();
+    }
+  }
+  throw MessageException("Reason attribute not found");
+}
+
+attribute_t::payload_t::client_count_t Message::get_client_count() const {
+  for (const auto& attr : *this) {
+    if (attr.get_type() == attribute_t::type_t::CLIENT_COUNT) {
+      return attr.get_client_count();
+    }
+  }
+  throw MessageException("Client count attribute not found");
 }
 
 const Message::attribute_t& Message::operator[](size_t idx) const {
@@ -158,7 +252,7 @@ const Message::attribute_t& Message::operator[](size_t idx) const {
     }
     offset += attr->size();
     --idx;
-  } while (offset < length);
+  } while (offset < header.length);
   throw std::out_of_range("Index out of range");
 }
 
@@ -216,11 +310,20 @@ std::ostream& operator<<(std::ostream& os, const message_type_t type) {
     case message_type_t::FWD:
       os << "FWD";
       break;
+    case message_type_t::ACK:
+      os << "ACK";
+      break;
     case message_type_t::NAK:
       os << "NAK";
       break;
+    case message_type_t::ONLINE:
+      os << "ONLINE";
+      break;
     case message_type_t::OFFLINE:
       os << "OFFLINE";
+      break;
+    case message_type_t::IDLE:
+      os << "IDLE";
       break;
     default:
       os << "UNKNOWN";

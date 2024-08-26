@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <stdexcept>
+#include <cassert>
 
 #define SBCP_VERSION 3
 
@@ -55,10 +57,11 @@ typedef class Message {
     constexpr size_t size() const noexcept {
       return sizeof(type) + sizeof(length) + length;
     }
-    const char* get_username() const noexcept { return payload.username; }
-    const char* get_message() const noexcept { return payload.message; }
-    const char* get_reason() const noexcept { return payload.reason; }
+    const char* get_username() const { assert(type == type_t::USERNAME); return payload.username; }
+    const char* get_message() const { assert(type == type_t::MESSAGE); return payload.message; }
+    const char* get_reason() const { assert(type == type_t::REASON); return payload.reason; }
     payload_t::client_count_t get_client_count() const noexcept {
+      assert(type == type_t::CLIENT_COUNT);
       return payload.client_count;
     }
 
@@ -88,26 +91,56 @@ typedef class Message {
   typedef uint16_t version_t;
   typedef uint16_t length_t;
 
+ public:
+  typedef struct header {
+    version_t version : 9;
+    type_t type : 7;
+    length_t length;
+  } header_t;
+
  private:
-  version_t version : 9;
-  type_t type : 7;
-  length_t length;
+  header_t header;
   char payload[SBCP_MAX_PAYLOAD_LENGTH];
 
  public:
-  constexpr Message(type_t type) noexcept
-      : version(SBCP_VERSION), type(type), length(0), payload() {}
+  explicit constexpr Message() noexcept
+      : header({.version = SBCP_VERSION, .type = type_t::JOIN, .length = 0}),
+        payload() {}
+  explicit constexpr Message(type_t type) noexcept
+      : header({.version = SBCP_VERSION, .type = type, .length = 0}),
+        payload() {}
   void validate() const;
   void validate_version() const;
-  version_t constexpr get_version() const noexcept { return version; }
-  type_t constexpr get_type() const noexcept { return type; }
-  length_t constexpr get_length() const noexcept { return length; }
+  version_t constexpr get_version() const noexcept { return header.version; }
+  type_t constexpr get_type() const noexcept { return header.type; }
+  length_t constexpr get_length() const noexcept { return header.length; }
+  size_t size() const noexcept { return sizeof(header) + header.length; }
+  const char* data() const noexcept {
+    return reinterpret_cast<const char*>(this);
+  }
 
   void add_attribute(const attribute_t&);
   void add_attribute(attribute_t::type_t, const char*, size_t);
   void add_attribute(attribute_t::type_t, const char*);
   void add_attribute(attribute_t::type_t,
                      attribute_t::payload_t::client_count_t);
+  void add_username(const char*, size_t);
+  void add_username(const char*);
+  void add_message(const char*, size_t);
+  void add_message(const char*);
+  void add_reason(const char*, size_t);
+  void add_reason(const char*);
+  void add_client_count(attribute_t::payload_t::client_count_t);
+
+  void change_to_fwd(const char*, size_t);
+  void change_to_fwd(const char*);
+  void change_to_fwd(const std::string&);
+
+  std::vector<std::string> get_usernames() const;
+  std::string get_username() const;
+  std::string get_message() const;
+  std::string get_reason() const;
+  attribute_t::payload_t::client_count_t get_client_count() const;
 
   const attribute_t& operator[](size_t) const;
 
@@ -155,9 +188,9 @@ typedef class Message {
 
  public:
   iterator begin() { return iterator(this); }
-  iterator end() { return iterator(this, length); }
+  iterator end() { return iterator(this, header.length); }
   const_iterator begin() const { return const_iterator(this); }
-  const_iterator end() const { return const_iterator(this, length); }
+  const_iterator end() const { return const_iterator(this, header.length); }
 
   friend std::ostream& operator<<(std::ostream& os, const Message& msg);
 
@@ -169,6 +202,14 @@ typedef enum Message::Type message_type_t;
 
 std::ostream& operator<<(std::ostream& os, attribute_type_t type);
 std::ostream& operator<<(std::ostream& os, message_type_t type);
+
+class MessageException : public std::runtime_error {
+ public:
+  explicit MessageException(const std::string& what_arg)
+      : std::runtime_error(what_arg) {}
+  explicit MessageException(const char* what_arg)
+      : std::runtime_error(what_arg) {}
+};
 
 }  // namespace sbcp
 
