@@ -1,2 +1,6 @@
 server
 client
+
+# pub sub fifos
+*publish
+*subscribe
