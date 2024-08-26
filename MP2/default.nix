@@ -18,7 +18,7 @@
     '';
     installPhase = ''
       mkdir -p $out/bin
-      cp -r echo $out/bin
+      cp -r client $out/bin
     '';
   };
 }
