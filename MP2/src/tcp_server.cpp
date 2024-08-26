@@ -263,25 +263,19 @@ void TCPServer::TCPClientHandler::reap_clients() {
     return;
   }
 
-  std::vector<pid_t> finished_clients;
-  while(pid_t finished = waitpid(0, nullptr, WNOHANG)){
+  int reap_count = 0;
+  pid_t finished;
+  while(!clients.empty() && (finished = waitpid(0, nullptr, WNOHANG))){
     if (finished < 0){
       perror("TCPServer waitpid");
       break;
     }
-    finished_clients.push_back(finished);
+    clients.erase(std::remove(clients.begin(), clients.end(), finished), clients.end());
+    reap_count++;
   }
 
   if (debug_mode) {
-    fprintf(stderr, "Reaped %lu clients\n", finished_clients.size());
-  }
-
-  // remove finished clients from list
-  for (auto pid : finished_clients) {
-    auto it = std::find(clients.begin(), clients.end(), pid);
-    if (it != clients.end()) {
-      clients.erase(it);
-    }
+    fprintf(stderr, "Reaped %d clients\n", reap_count);
   }
 
   if (debug_mode) {
