@@ -46,6 +46,7 @@ std::string subscribe_fifo_name(const std::string &username) {
 
 void client_handler(TCPClient *client, void *extra_data) {
   // extra_data is the write end of the main thread's pipe
+  // used for bootstrapping the handler and creating the pub sub fifos
   int main_fd = *((int *)extra_data);
   int pub_fd = -1;
   int sub_fd = -1;
@@ -93,9 +94,11 @@ void client_handler(TCPClient *client, void *extra_data) {
           if (access(pub_fifo_name.c_str(), F_OK) != -1) {
             std::cerr << "Username " << username << " already taken"
                       << std::endl;
+            // send nak message to client
             message_t nack = NAK("Username already taken");
             client->write((void *)nack.data(), nack.size());
             username.clear();
+            // cleanup
             break;
           }
 
@@ -127,6 +130,7 @@ void client_handler(TCPClient *client, void *extra_data) {
 
           break;
         }
+        // forward message to main thread
         case message_type_t::SEND:
         case message_type_t::IDLE: {
           assert(pub_fd >= 0);
@@ -142,10 +146,16 @@ void client_handler(TCPClient *client, void *extra_data) {
         }
       }
     }
+
     // message from main thread
     else if (sub_fd >= 0 && FD_ISSET(sub_fd, &readfds)) {
       message_t message;
-      read_message(sub_fd, &message);
+      auto r = read_message(sub_fd, &message);
+      if (r == 0) {
+        // main thread disconnected
+        std::cerr << "Main thread closed the fifo... Something went seriously wrong" << std::endl;
+        break;
+      }
       std::cerr << "Handler received message from main thread" << std::endl;
       std::cerr << message << std::endl;
       std::cerr << "Forwarding message to client" << std::endl;
@@ -154,12 +164,15 @@ void client_handler(TCPClient *client, void *extra_data) {
       client->write((void *)message.data(), message.size());
     }
   }
+
+  // cleanup
   if (pub_fd >= 0) {
     close(pub_fd);
   }
   if (sub_fd >= 0) {
     close(sub_fd);
   }
+  // if we successfully joined
   if (!username.empty()) {
     unlink(publish_fifo_name(username).c_str());
     unlink(subscribe_fifo_name(username).c_str());
@@ -241,6 +254,7 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
+    // client joining
     if (FD_ISSET(pipefd[0], &readfds)) {
       message_t message;
       read_message(pipefd[0], &message);
@@ -272,6 +286,8 @@ int main(int argc, char *argv[]) {
           std::cerr << "User " << username << " joining room" << std::endl;
           auto other_users = online_users;
           online_users.push_back(username);
+
+          // send ack message to handler thread
           message_t ack = ACK(other_users.size() + 1, other_users);
           write(wr_fifos[username], ack.data(), ack.size());
           std::cerr << "Sent ACK to handler thread" << std::endl;
@@ -288,12 +304,13 @@ int main(int argc, char *argv[]) {
                     << " from client on main pipe" << std::endl;
         }
       }
-    } else {
+    } 
+    // extablished clients
+    else {
       for (auto &pair : rd_fifos) {
         if (FD_ISSET(pair.second, &readfds)) {
-          message_t message;
-          memset((void *)message.data(), 0, sizeof(message_t));
           auto username = pair.first;
+          message_t message;
           auto r = read_message(pair.second, &message);
           // client disconnected
           if (r == 0) {
@@ -316,15 +333,17 @@ int main(int argc, char *argv[]) {
                     << std::endl;
           std::cerr << message << std::endl;
           switch (message.get_type()) {
+            // forward message to all other clients
             case message_type_t::SEND: {
               message.change_to_fwd(username);
               write_all_except(wr_fifos, message, username);
               break;
             }
+            // forward idle message to all other clients with the username
             case message_type_t::IDLE: {
               std::cerr << "Main thread recieved IDLE message from " << username
                         << std::endl;
-              // send message to all other clients
+              message.add_username(username.c_str());
               write_all_except(wr_fifos, message, username);
               break;
             }

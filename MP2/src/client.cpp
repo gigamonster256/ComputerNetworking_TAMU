@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sys/select.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "sbcp_messages.hpp"
 #include "tcp_client.hpp"
@@ -22,14 +23,20 @@ int main(int argc, char *argv[]) {
   const char *server = argv[2];
   int port = atoi(argv[3]);
 
+  // connect to server
   TCPClient client(server, port);
+
+  // send JOIN message
   const message_t join_msg = JOIN(username);
   client.writen((void *)join_msg.data(), join_msg.size());
   // we should get an ACK message
+  // or a NAK message if the username is in use
   message_t server_response;
   client.readn((void *)server_response.data(), sizeof(message_t::header_t));
   client.readn((void *)(server_response.data() + sizeof(message_t::header_t)),
                server_response.get_length());
+  
+  // we're connected
   if (server_response.get_type() == message_t::Type::ACK) {
     std::cout << "Connected to server" << std::endl;
     std::cout << "Client count: " << server_response.get_client_count() << std::endl;
@@ -42,26 +49,62 @@ int main(int argc, char *argv[]) {
     } else {
       std::cout << "No other clients connected" << std::endl;
     }
-  } else {
+  } 
+  // NAK (username in use)
+  else {
     std::cerr << "Failed to connect to server" << std::endl;
     assert(server_response.get_type() == message_t::Type::NAK);
     std::cerr << "Reason: " << server_response.get_reason() << std::endl;
     exit(EXIT_FAILURE);
   }
 
+  // get current timestamp
+  struct timespec spec;
+  clock_gettime(CLOCK_MONOTONIC, &spec);
+
+  bool idle = false;
+
+  // main loop
   while(true) {
     // read from client or stdin
     fd_set readfds;
     FD_ZERO(&readfds);
     FD_SET(client.get_fd(), &readfds);
     FD_SET(STDIN_FILENO, &readfds);
-    int ret = select(client.get_fd() + 1, &readfds, NULL, NULL, NULL);
+
+    struct timeval select_timeout;
+    select_timeout.tv_sec = 1;
+    select_timeout.tv_usec = 0;
+
+    // wait 1 second for input
+    int ret = select(client.get_fd() + 1, &readfds, NULL, NULL, &select_timeout);
     if (ret < 0) {
       perror("select");
       exit(1);
     }
+
+    // see if we've been idle for 10 seconds
+    if (ret == 0) {
+      // std::cerr << "Timeout" << std::endl;
+      // we're already idle
+      if (idle) {
+        continue;
+      }
+      // check if we've been idle for 10 seconds
+      struct timespec new_spec;
+      clock_gettime(CLOCK_MONOTONIC, &new_spec);
+      // std::cout << "Elapsed time: " << new_spec.tv_sec - spec.tv_sec << std::endl;
+      if (new_spec.tv_sec - spec.tv_sec >= 10) {
+        // std::cerr << "Idle for 10 seconds" << std::endl;
+        // send IDLE message
+        const message_t idle_msg = IDLE();
+        client.writen((void *)idle_msg.data(), idle_msg.size());
+        idle = true;
+      }
+      continue;
+    }
+
     message_t msg;
-    std::memset((void*)msg.data(), 0, sizeof(message_t));
     if (FD_ISSET(client.get_fd(), &readfds)) {
       // read from server
       client.readn((void *)msg.data(), sizeof(message_t::header_t));
@@ -79,6 +122,10 @@ int main(int argc, char *argv[]) {
     } else 
     // read from stdin
     if (FD_ISSET(STDIN_FILENO, &readfds)) {
+      // not idle anymore
+      idle = false;
+      clock_gettime(CLOCK_MONOTONIC, &spec);
+
       // read from stdin
       std::string message;
       std::getline(std::cin, message);
