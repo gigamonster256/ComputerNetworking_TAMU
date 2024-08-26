@@ -1,5 +1,4 @@
-{pkgs}:
-{
+{pkgs}: {
   sbcp_server = pkgs.stdenv.mkDerivation {
     name = "server";
     src = ./src;

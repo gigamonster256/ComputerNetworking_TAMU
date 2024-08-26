@@ -1,5 +1,4 @@
-{pkgs}:
-{
+{pkgs}: {
   echos = pkgs.stdenv.mkDerivation {
     name = "echos";
     src = ./src;
