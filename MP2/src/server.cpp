@@ -2,11 +2,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include <cassert>
 #include <iostream>
 #include <map>
 #include <vector>
+
+#include <algorithm>
 
 #include "sbcp_messages.hpp"
 #include "tcp_server.hpp"

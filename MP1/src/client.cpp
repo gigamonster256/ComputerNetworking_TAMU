@@ -1,6 +1,7 @@
 // tcp echo client
 
 #include <iostream>
+#include <cstring>
 
 #include "tcp_client.hpp"
 
@@ -19,7 +20,7 @@ int main(int argc, char *argv[]) {
 
   TCPClient client(server, port);
   char buf[1024];
-  while(char* s = fgets(buf, sizeof(buf), stdin)) {
+  while(fgets(buf, sizeof(buf), stdin)) {
     client.writen(buf, strlen(buf));
     client.readline(buf, sizeof(buf));
     fputs(buf, stdout);

@@ -7,13 +7,16 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#include <algorithm>
+
 #include <cassert>
 #include <utility>
 
 TCPServer::~TCPServer() {
-  if (server_sock_fd >= 0) {
-    stop(true);
-  }
+  stop(true);
 }
 
 TCPServer& TCPServer::set_port(unsigned int port_no) {
@@ -25,14 +28,12 @@ TCPServer& TCPServer::set_port(unsigned int port_no) {
 
 TCPServer& TCPServer::set_timeout(unsigned int timeout) {
   assert(server_pid < 0);
-  assert(timeout >= 0);
   this->timeout = timeout;
   return *this;
 }
 
 TCPServer& TCPServer::set_max_timeouts(unsigned int max_timeouts) {
   assert(server_pid < 0);
-  assert(max_timeouts >= 0);
   this->max_timeouts = max_timeouts;
   return *this;
 }
@@ -86,8 +87,6 @@ pid_t TCPServer::start() {
   // verify configuration
   assert(server_pid < 0);
   assert(port_no > 0);
-  assert(timeout >= 0);
-  assert(max_timeouts >= 0);
   assert(backlog > 0);
   assert(client_handler.max_clients > 0);
   assert(client_handler.handlers.size() > 0);

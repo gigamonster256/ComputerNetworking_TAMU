@@ -135,6 +135,9 @@ size_t TCPClient::readline(void *msgbuf, size_t maxlen) {
       break;
     }
   }
+  if (n_read == 0) {
+    return 0;
+  }
   if (((char *)msgbuf)[n_read - 1] != '\n') {
     fprintf(stderr, "TCPClient readline: no newline recieved\n");
     exit(EXIT_FAILURE);

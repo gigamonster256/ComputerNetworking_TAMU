@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <iterator>
 #include <stdexcept>
+#include <vector>
+#include <string>
 #include <cassert>
 
 #define SBCP_VERSION 3
@@ -104,10 +106,10 @@ typedef class Message {
 
  public:
   explicit constexpr Message() noexcept
-      : header({.version = SBCP_VERSION, .type = type_t::JOIN, .length = 0}),
+      : header(header_t{.version = SBCP_VERSION, .type = type_t::JOIN, .length = 0}),
         payload() {}
   explicit constexpr Message(type_t type) noexcept
-      : header({.version = SBCP_VERSION, .type = type, .length = 0}),
+      : header(header_t{.version = SBCP_VERSION, .type = type, .length = 0}),
         payload() {}
   void validate() const;
   void validate_version() const;

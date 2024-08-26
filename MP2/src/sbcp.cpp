@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <vector>
+#include <string>
 #include <utility>
 
 namespace sbcp {

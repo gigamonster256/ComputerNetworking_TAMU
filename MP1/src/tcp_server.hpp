@@ -32,6 +32,7 @@ class TCPServer {
 
     TCPClientHandler()
         : current_handler(0),
+          clients(),
           max_clients(5),
           handlers(),
           mode(RoundRobin),
@@ -73,7 +74,9 @@ class TCPServer {
  public:
   TCPServer()
       : server_sock_fd(-1),
+        client_handler(),
         server_pid(-1),
+        timeout_count(0),
         port_no(-1),
         timeout(1),
         max_timeouts(0),
