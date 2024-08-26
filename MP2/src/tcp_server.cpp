@@ -254,19 +254,22 @@ void TCPServer::stop(bool force) {
 
 // reap all clients that have finished
 void TCPServer::TCPClientHandler::reap_clients() {
+
   if (debug_mode) {
     fprintf(stderr, "Reaping clients\n");
   }
 
+  if (clients.empty()) {
+    return;
+  }
+
   std::vector<pid_t> finished_clients;
-  for (auto pid : clients) {
-    int status;
-    if (waitpid(pid, &status, WNOHANG) < 0) {
+  while(pid_t finished = waitpid(0, nullptr, WNOHANG)){
+    if (finished < 0){
       perror("TCPServer waitpid");
+      break;
     }
-    if (WIFEXITED(status) || WIFSIGNALED(status)) {
-      finished_clients.push_back(pid);
-    }
+    finished_clients.push_back(finished);
   }
 
   if (debug_mode) {
