@@ -47,7 +47,7 @@ class TCPServer {
     void debug(bool mode) { debug_mode = mode; }
     void set_extra_data(client_data_ptr_t data) { extra_data = data; }
 
-    void handle(int client_sock_fd, struct sockaddr_in6);
+    void accept(int server_sock_fd);
     void reap_clients();
     void join_clients();
     void terminate_clients();
@@ -97,7 +97,7 @@ class TCPServer {
   TCPServer& add_handler(ClientHandlerFunction handler);
   TCPServer& set_handler_mode(TCPClientHandler::handle_mode mode);
   TCPServer& set_max_clients(unsigned int max_clients);
-  TCPServer& add_client_extra_data(void* data);
+  TCPServer& add_handler_extra_data(void* data);
 
   // server operation
   pid_t start();

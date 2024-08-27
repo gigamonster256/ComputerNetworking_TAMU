@@ -1,20 +1,26 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <map>
 #include <vector>
-
-#include <algorithm>
+#include <cstring>
 
 #include "sbcp_messages.hpp"
 #include "tcp_server.hpp"
 
 using namespace sbcp;
+
+struct bootstrap_message {
+  pid_t handler_pid;
+  uint8_t username_length;
+  char username[SBCP_MAX_USERNAME_LENGTH];
+};
 
 void usage(const char *progname) {
   std::cerr << "Usage: " << progname << " <ip> <port> <max_clients>"
@@ -39,36 +45,47 @@ ssize_t read_message(TCPClient *client, message_t *message) {
   return read_message(client->get_fd(), message);
 }
 
-std::string publish_fifo_name(const std::string &username) {
-  return username + "_publish";
+std::string main_fifo_name(pid_t pid) {
+  return "/tmp/sbcp/" + std::to_string(pid) + "_main";
 }
 
-std::string subscribe_fifo_name(const std::string &username) {
-  return username + "_subscribe";
+std::string handler_fifo_name(pid_t pid) {
+  return "/tmp/sbcp/" + std::to_string(pid) + "_handler";
 }
 
 void client_handler(TCPClient *client, void *extra_data) {
-  // extra_data is the write end of the main thread's pipe
-  // used for bootstrapping the handler and creating the pub sub fifos
-  int main_fd = *((int *)extra_data);
-  int pub_fd = -1;
-  int sub_fd = -1;
-  std::string username;
+  fprintf(stderr, "Handler started\n");
+  std::cerr << "Peer: " << client->peer_ip() << std::endl;
 
-  fprintf(stderr, "Client connected\n");
+  // extra_data is the pipe created in main
+  // used for bootstrapping the handler - main communication channel
+  int *fds = (int *)extra_data;
+  int bootstrap_fd = fds[1];
+  // close read end of pipe
+  close(fds[0]);
+  // fifos to talk to main thread
+  int handler_fd = -1;
+  int main_fd = -1;
+  bool fifos_created = false;
+  pid_t pid = getpid();
 
   while (true) {
-    // select on client and sub_fd
+    // select on client and main_fd
     fd_set readfds;
     FD_ZERO(&readfds);
     FD_SET(client->get_fd(), &readfds);
-    if (sub_fd >= 0) {
-      FD_SET(sub_fd, &readfds);
+
+    // only listen to main_fd if we have joined
+    if (main_fd >= 0) {
+      FD_SET(main_fd, &readfds);
     }
-    int ready = select(std::max(client->get_fd(), sub_fd) + 1, &readfds, NULL,
+    int ready = select(std::max(client->get_fd(), main_fd) + 1, &readfds, NULL,
                        NULL, NULL);
     if (ready < 0) {
-      perror("select");
+      perror("Handler select");
+      if (errno == EINTR) {
+        continue;
+      }
       exit(EXIT_FAILURE);
     }
     if (ready == 0) {
@@ -81,53 +98,67 @@ void client_handler(TCPClient *client, void *extra_data) {
       auto r = read_message(client, &message);
       if (r == 0) {
         // client disconnected
+        std::cerr << "Client disconnected" << std::endl;
         break;
       }
       std::cerr << "Handler received message from client" << std::endl;
       std::cerr << message << std::endl;
 
       switch (message.get_type()) {
+        // joins bootstrap the handler
         case message_type_t::JOIN: {
-          username = message.get_username();
-
-          // check to see if username is already taken
-          // we dont have a way for the main thread to tell us this
-          // so we just check if a file with the username exists
-          auto pub_fifo_name = publish_fifo_name(username);
-          if (access(pub_fifo_name.c_str(), F_OK) != -1) {
-            std::cerr << "Username " << username << " already taken"
-                      << std::endl;
-            // send nak message to client
-            message_t nack = NAK("Username already taken");
-            client->write((void *)nack.data(), nack.size());
-            username.clear();
-            // cleanup
-            break;
-          }
-
-          // make pub sub fifos
-          if (mkfifo(pub_fifo_name.c_str(), 0666) < 0) {
-            perror("mkfifo");
-            exit(EXIT_FAILURE);
-          }
-          auto sub_fifo_name = subscribe_fifo_name(username);
-          if (mkfifo(sub_fifo_name.c_str(), 0666) < 0) {
-            perror("mkfifo");
-            exit(EXIT_FAILURE);
-          }
-          // send join message to main thread
-          write(main_fd, message.data(), message.size());
-
-          // open pub sub fifos
-          pub_fd = open(pub_fifo_name.c_str(), O_WRONLY);
-          if (pub_fd < 0) {
-            perror("open");
+          // make fifos
+          auto main_fifo = main_fifo_name(pid);
+          if (mkfifo(main_fifo.c_str(), 0666) < 0) {
+            perror("Handler mkfifo main");
             exit(EXIT_FAILURE);
           }
 
-          sub_fd = open(sub_fifo_name.c_str(), O_RDONLY);
-          if (sub_fd < 0) {
-            perror("open");
+          auto handler_fifo = handler_fifo_name(pid);
+          if (mkfifo(handler_fifo.c_str(), 0666) < 0) {
+            perror("Handler mkfifo handler");
+            unlink(handler_fifo.c_str());
+            exit(EXIT_FAILURE);
+          }
+
+          fifos_created = true;
+
+          // send bootstrap message to main thread
+          auto username = message.get_username();
+          std::cerr << "Handler bootstrapping for " << username << std::endl;
+          struct bootstrap_message bootstrap(
+              {pid, (uint8_t)username.size(), {}});
+          strncpy(bootstrap.username, username.c_str(),
+                  SBCP_MAX_USERNAME_LENGTH);
+          write(bootstrap_fd, (void *)&bootstrap, sizeof(bootstrap));
+
+          std::cerr << "Handler sent bootstrap message to main thread"
+                    << std::endl;
+
+          std::cerr << "Handler waiting for main thread to connect"
+                    << std::endl;
+          // open fifos
+          main_fd = open(main_fifo.c_str(), O_RDONLY);
+          if (main_fd < 0) {
+            perror("Handler open main");
+            unlink(main_fifo.c_str());
+            unlink(handler_fifo.c_str());
+            exit(EXIT_FAILURE);
+          }
+
+          handler_fd = open(handler_fifo.c_str(), O_WRONLY);
+          if (handler_fd < 0) {
+            perror("Handler open handler");
+            unlink(main_fifo.c_str());
+            unlink(handler_fifo.c_str());
+            exit(EXIT_FAILURE);
+          }
+
+          // close write end of pipe
+          if (close(bootstrap_fd) < 0) {
+            perror("Handler close bootstrap");
+            unlink(main_fifo.c_str());
+            unlink(handler_fifo.c_str());
             exit(EXIT_FAILURE);
           }
 
@@ -136,8 +167,14 @@ void client_handler(TCPClient *client, void *extra_data) {
         // forward message to main thread
         case message_type_t::SEND:
         case message_type_t::IDLE: {
-          assert(pub_fd >= 0);
-          write(pub_fd, message.data(), message.size());
+          assert(fifos_created);
+          std::cerr << "Handler forwarding message to main thread" << std::endl;
+          auto r = write(handler_fd, message.data(), message.size());
+          if (r < 0) {
+            perror("Handler write to main");
+            exit(EXIT_FAILURE);
+          }
+          assert((size_t)r == message.size());
           break;
         }
         default: {
@@ -151,12 +188,14 @@ void client_handler(TCPClient *client, void *extra_data) {
     }
 
     // message from main thread
-    else if (sub_fd >= 0 && FD_ISSET(sub_fd, &readfds)) {
+    else if (main_fd >= 0 && FD_ISSET(main_fd, &readfds)) {
       message_t message;
-      auto r = read_message(sub_fd, &message);
+      auto r = read_message(main_fd, &message);
       if (r == 0) {
         // main thread disconnected
-        std::cerr << "Main thread closed the fifo... Something went seriously wrong" << std::endl;
+        std::cerr << "Main thread closed the fifo... I guess we aren't allowed "
+                     "to talk anymore"
+                  << std::endl;
         break;
       }
       std::cerr << "Handler received message from main thread" << std::endl;
@@ -165,36 +204,38 @@ void client_handler(TCPClient *client, void *extra_data) {
 
       // send message to client
       client->write((void *)message.data(), message.size());
+    } else {
+      std::cerr << "Should not get here" << std::endl;
+      assert(false);
     }
   }
 
   // cleanup
-  if (pub_fd >= 0) {
-    close(pub_fd);
+  if (handler_fd >= 0) {
+    close(handler_fd);
   }
-  if (sub_fd >= 0) {
-    close(sub_fd);
+  if (main_fd >= 0) {
+    close(main_fd);
   }
-  // if we successfully joined
-  if (!username.empty()) {
-    unlink(publish_fifo_name(username).c_str());
-    unlink(subscribe_fifo_name(username).c_str());
+  if (fifos_created) {
+    unlink(main_fifo_name(pid).c_str());
+    unlink(handler_fifo_name(pid).c_str());
   }
-  fprintf(stderr, "Client disconnected\n");
+  fprintf(stderr, "Handler finished\n");
 }
 
 void timeout_handler() {
   //   fprintf(stderr, "No client in the last timeout interval\n");
 }
 
-void write_all(std::map<std::string, int> &fifos, message_t &message) {
+void write_all(std::map<std::string, int> &fifos, const message_t &message) {
   for (auto &pair : fifos) {
     write(pair.second, message.data(), message.size());
   }
 }
 
-void write_all_except(std::map<std::string, int> &fifos, message_t &message,
-                      const std::string &username) {
+void write_all_except(std::map<std::string, int> &fifos,
+                      const message_t &message, const std::string &username) {
   for (auto &pair : fifos) {
     if (pair.first != username) {
       write(pair.second, message.data(), message.size());
@@ -221,13 +262,19 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
+  // make sure /tmp/sbcp exists
+  if (mkdir("/tmp/sbcp", 0777) < 0 && errno != EEXIST) {
+    perror("mkdir");
+    exit(EXIT_FAILURE);
+  }
+
   TCPServer server;
   auto pid = server.set_port(port)
                  .add_handler(client_handler)
                  .set_max_clients(max_clients)
                  .set_timeout_handler(timeout_handler)
                  // give write end of pipe to clients
-                 .add_client_extra_data((void *)&pipefd[1])
+                 .add_handler_extra_data((void *)pipefd)
                  //  .debug(true)
                  .start();
   std::cerr << "Server started with pid: " << pid << std::endl;
@@ -235,6 +282,8 @@ int main(int argc, char *argv[]) {
   // username -> fifo set
   std::map<std::string, int> rd_fifos;
   std::map<std::string, int> wr_fifos;
+
+  // online users
   std::vector<std::string> online_users;
 
   // get join messages from clients
@@ -253,61 +302,70 @@ int main(int argc, char *argv[]) {
       perror("select");
       exit(EXIT_FAILURE);
     }
-    if (ready == 0) {
-      continue;
-    }
 
     // client joining
     if (FD_ISSET(pipefd[0], &readfds)) {
-      message_t message;
-      read_message(pipefd[0], &message);
+      struct bootstrap_message message;
+      auto n = read(pipefd[0], (void *)&message, sizeof(message));
+      if (n == 0) {
+        // server closed the pipe
+        std::cerr << "Server closed the pipe... Something went seriously wrong"
+                  << std::endl;
+        break;
+      }
+      if (n != sizeof(message)) {
+        std::cerr << "Main read " << n << " bootstrap bytes, expected "
+                  << sizeof(message) << std::endl;
+        continue;
+      }
       std::cerr << "Main thread recieved bootstrap message from client"
                 << std::endl;
-      std::cerr << message << std::endl;
+      std::cerr << "Handler pid: " << message.handler_pid << std::endl;
 
-      switch (message.get_type()) {
-        case message_type_t::JOIN: {
-          std::string username = message.get_username();
-
-          std::cerr << "Main thread bootstrapping handler for " << username
-                    << std::endl;
-          // the handler makes the pub sub fifos
-          auto pub_fifo_name = publish_fifo_name(username);
-          int pub_fd = open(pub_fifo_name.c_str(), O_RDONLY);
-          if (pub_fd < 0) {
-            perror("open");
-            exit(EXIT_FAILURE);
-          }
-          auto sub_fifo_name = subscribe_fifo_name(username);
-          int sub_fd = open(sub_fifo_name.c_str(), O_WRONLY);
-          if (sub_fd < 0) {
-            perror("open");
-            exit(EXIT_FAILURE);
-          }
-          rd_fifos[username] = pub_fd;
-          wr_fifos[username] = sub_fd;
-          std::cerr << "User " << username << " joining room" << std::endl;
-          auto other_users = online_users;
-          online_users.push_back(username);
-
-          // send ack message to handler thread
-          message_t ack = ACK(other_users.size() + 1, other_users);
-          write(wr_fifos[username], ack.data(), ack.size());
-          std::cerr << "Sent ACK to handler thread" << std::endl;
-
-          // send online message to all other clients
-          message_t online = ONLINE(username);
-          write_all_except(wr_fifos, online, username);
-          std::cerr << "Sent ONLINE to all other clients" << std::endl;
-          break;
-        }
-        default: {
-          // other message types
-          std::cerr << "Should not get message type: " << message.get_type()
-                    << " from client on main pipe" << std::endl;
-        }
+      // establish fifo connection with handler
+      auto main_fifo = main_fifo_name(message.handler_pid);
+      int main_fd = open(main_fifo.c_str(), O_WRONLY);
+      if (main_fd < 0) {
+        perror("open");
+        exit(EXIT_FAILURE);
       }
-    } 
+      auto handler_fifo = handler_fifo_name(message.handler_pid);
+      int handler_fd = open(handler_fifo.c_str(), O_RDONLY);
+      if (handler_fd < 0) {
+        perror("open");
+        close(main_fd);
+        exit(EXIT_FAILURE);
+      }
+
+      // make sure username is unique
+      std::string username(message.username, message.username_length);
+      if (rd_fifos.find(username) != rd_fifos.end()) {
+        std::cerr << "Username " << username << " already exists" << std::endl;
+        // send nak message to handler thread
+        message_t nak = NAK("Username already exists");
+        write(main_fd, nak.data(), nak.size());
+        close(handler_fd);
+        close(main_fd);
+        continue;
+      }
+
+      std::cerr << "New user: " << username << std::endl;
+
+      rd_fifos[username] = handler_fd;
+      wr_fifos[username] = main_fd;
+      auto other_users = online_users;
+      online_users.push_back(username);
+
+      // send ack message to handler thread
+      message_t ack = ACK(online_users.size(), other_users);
+      write(wr_fifos[username], ack.data(), ack.size());
+      std::cerr << "Sent ACK to handler thread" << std::endl;
+
+      // send online message to all other clients
+      message_t online = ONLINE(username);
+      write_all_except(wr_fifos, online, username);
+      std::cerr << "Sent ONLINE to all other clients" << std::endl;
+    }
     // extablished clients
     else {
       for (auto &pair : rd_fifos) {
@@ -332,7 +390,7 @@ int main(int argc, char *argv[]) {
             write_all(wr_fifos, offline);
             break;
           }
-          std::cerr << "Main thread recieved fifo message from client"
+          std::cerr << "Main thread recieved fifo message from " << username
                     << std::endl;
           std::cerr << message << std::endl;
           switch (message.get_type()) {
@@ -356,11 +414,16 @@ int main(int argc, char *argv[]) {
                         << " from client on fifo" << std::endl;
             }
           }
+          break;
         }
       }
     }
   }
 
+  // add way to close server?
+  assert(false);
+
   waitpid(pid, nullptr, 0);
+  close(pipefd[0]);
   close(pipefd[1]);
 }

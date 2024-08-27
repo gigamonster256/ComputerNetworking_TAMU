@@ -5,19 +5,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include <algorithm>
-
 #include <cassert>
 #include <utility>
 
-TCPServer::~TCPServer() {
-  stop(true);
-}
+TCPServer::~TCPServer() { stop(true); }
 
 TCPServer& TCPServer::set_port(unsigned int port_no) {
   assert(server_pid < 0);
@@ -77,7 +73,7 @@ TCPServer& TCPServer::set_max_clients(unsigned int max_clients) {
   return *this;
 }
 
-TCPServer& TCPServer::add_client_extra_data(void* data) {
+TCPServer& TCPServer::add_handler_extra_data(void* data) {
   assert(server_pid < 0);
   client_handler.set_extra_data(data);
   return *this;
@@ -209,22 +205,15 @@ void TCPServer::run_server() {
     // socket is ready to accept a new connection
     timeout_count = 0;
 
-    struct sockaddr_in6 client_addr;
-    socklen_t client_addr_len = sizeof(client_addr);
-    int client_sock_fd = accept(server_sock_fd, (struct sockaddr*)&client_addr,
-                                &client_addr_len);
-    if (client_sock_fd < 0) {
-      perror("TCPServer accept");
-      break;
-    }
-
     // pass client to handler
-    client_handler.handle(client_sock_fd, client_addr);
+    client_handler.accept(server_sock_fd);
   }
 
   if (debug_mode) {
     fprintf(stderr, "Stopping server thread\n");
   }
+
+  close(server_sock_fd);
 
   client_handler.join_clients();
 }
@@ -253,7 +242,6 @@ void TCPServer::stop(bool force) {
 
 // reap all clients that have finished
 void TCPServer::TCPClientHandler::reap_clients() {
-
   if (debug_mode) {
     fprintf(stderr, "Reaping clients\n");
   }
@@ -264,12 +252,13 @@ void TCPServer::TCPClientHandler::reap_clients() {
 
   int reap_count = 0;
   pid_t finished;
-  while(!clients.empty() && (finished = waitpid(0, nullptr, WNOHANG))){
-    if (finished < 0){
+  while (!clients.empty() && (finished = waitpid(0, nullptr, WNOHANG))) {
+    if (finished < 0) {
       perror("TCPServer waitpid");
       break;
     }
-    clients.erase(std::remove(clients.begin(), clients.end(), finished), clients.end());
+    clients.erase(std::remove(clients.begin(), clients.end(), finished),
+                  clients.end());
     reap_count++;
   }
 
@@ -328,8 +317,7 @@ void TCPServer::TCPClientHandler::kill_clients() {
 
 TCPServer::TCPClientHandler::~TCPClientHandler() { kill_clients(); }
 
-void TCPServer::TCPClientHandler::handle(int client_sock_fd,
-                                         struct sockaddr_in6 client_addr) {
+void TCPServer::TCPClientHandler::accept(int server_sock_fd) {
   reap_clients();
   if (debug_mode) {
     fprintf(stderr, "mode: %d, current_handler: %d\n", mode, current_handler);
@@ -343,6 +331,15 @@ void TCPServer::TCPClientHandler::handle(int client_sock_fd,
     case Random:
       handler = handlers[rand() % handlers.size()];
       break;
+  }
+
+  struct sockaddr_in6 client_addr;
+  socklen_t client_addr_len = sizeof(client_addr);
+  int client_sock_fd = ::accept(server_sock_fd, (struct sockaddr*)&client_addr,
+                                &client_addr_len);
+  if (client_sock_fd < 0) {
+    perror("TCPClientHandler accept");
+    return;
   }
 
   if (clients.size() >= max_clients) {
@@ -359,9 +356,11 @@ void TCPServer::TCPClientHandler::handle(int client_sock_fd,
     return;
   }
   if (pid == 0) {
+    // child process
     if (debug_mode) {
       fprintf(stderr, "Got new connection... creating TCPClient\n");
     }
+    close(server_sock_fd);
 
     TCPClient* client = new TCPClient(client_sock_fd, client_addr);
 
@@ -377,6 +376,7 @@ void TCPServer::TCPClientHandler::handle(int client_sock_fd,
     delete client;
     exit(EXIT_SUCCESS);
   }
+  close(client_sock_fd);
   if (debug_mode) {
     fprintf(stderr, "Adding child pid: %d\n", pid);
   }
