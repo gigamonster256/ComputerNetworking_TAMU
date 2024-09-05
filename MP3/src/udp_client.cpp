@@ -9,9 +9,10 @@
 #include <cassert>
 #include <chrono>
 
-UDPClient::UDPClient(sockaddr_in6 client_addr) {
+UDPClient::UDPClient(const struct sockaddr_in6& client_addr) {
   version = IPv6;
   peer_addr = client_addr;
+  connected_to_ephemeral_port = true;
   sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
   if (sockfd < 0) {
     perror("UDPClient socket");
@@ -30,13 +31,6 @@ UDPClient::UDPClient(sockaddr_in6 client_addr) {
     perror("UDPClient connect");
     exit(EXIT_FAILURE);
   }
-
-  uint32_t handshake = HANDSHAKE_PHASE2;
-  if (::send(sockfd, &handshake, sizeof(handshake), 0) < 0) {
-    perror("UDPClient send");
-    exit(EXIT_FAILURE);
-  }
-  fprintf(stderr, "Sent handshake back\n");
 }
 
 UDPClient::UDPClient(const char *server, int port_no) {
@@ -72,31 +66,6 @@ UDPClient::UDPClient(const char *server, int port_no) {
     perror("UDPClient inet_pton");
     exit(EXIT_FAILURE);
   }
-
-  uint32_t handshake = HANDSHAKE_PHASE1;
-  if (sendto(sockfd, &handshake, sizeof(handshake), 0,
-             (struct sockaddr *)&peer_addr, sizeof(peer_addr)) < 0) {
-    perror("UDPClient send");
-    exit(EXIT_FAILURE);
-  }
-
-  socklen_t addr_len = sizeof(peer_addr);
-  if (recvfrom(sockfd, &handshake, sizeof(handshake), 0,
-               (struct sockaddr *)&peer_addr, &addr_len) < 0) {
-    perror("UDPClient recvfrom");
-    exit(EXIT_FAILURE);
-  }
-
-  if (handshake != HANDSHAKE_PHASE2) {
-    fprintf(stderr, "UDPClient handshake failed\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // connect to the server's ephemeral port
-  if (connect(sockfd, (struct sockaddr *)&peer_addr, sizeof(peer_addr)) < 0) {
-    perror("UDPClient connect");
-    exit(EXIT_FAILURE);
-  }
 }
 
 UDPClient::~UDPClient() {
@@ -105,83 +74,46 @@ UDPClient::~UDPClient() {
   }
 }
 
-size_t UDPClient::writen(void *msgbuf, size_t len) {
-  size_t n = 0;
-  while (n < len) {
-    ssize_t n_written = ::write(sockfd, (char *)msgbuf + n, len - n);
-    if (n_written < 0) {
-      if (errno == EINTR) {
-        continue;
-      }
-      perror("UDPClient write");
-      exit(EXIT_FAILURE);
-    }
-    n += n_written;
-  }
-  if (n < len) {
-    fprintf(stderr, "UDPClient writen: short write\n");
+void UDPClient::connect_to_ephemeral_port(const struct sockaddr_in6& server_addr) {
+  // connect to the server's ephemeral port
+  if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+    perror("UDPClient connect");
     exit(EXIT_FAILURE);
   }
-  return n;
-}
-
-size_t UDPClient::readn(void *msgbuf, size_t len) {
-  size_t n = 0;
-  while (n < len) {
-    ssize_t n_read = ::read(sockfd, (char *)msgbuf + n, len - n);
-    if (n_read < 0) {
-      if (errno == EINTR) {
-        continue;
-      }
-      perror("UDPClient read");
-      exit(EXIT_FAILURE);
-    } else if (n_read == 0) {
-      break;
-    }
-    n += n_read;
+  peer_addr = server_addr;
+  if (inet_ntop(AF_INET6, &server_addr.sin6_addr, peer_ip_addr, sizeof(peer_ip_addr)) == NULL) {
+    perror("TCPClient inet_ntop");
   }
-  if (n < len) {
-    fprintf(stderr, "UDPClient readn: short read\n");
-    exit(EXIT_FAILURE);
-  }
-  return n;
-}
-
-size_t UDPClient::readline(void *msgbuf, size_t maxlen) {
-  size_t n_read = 0;
-  while (n_read < maxlen - 1) {
-    ssize_t n = ::read(sockfd, (char *)msgbuf + n_read, 1);
-    if (n < 0) {
-      if (errno == EINTR) {
-        continue;
-      }
-      perror("UDPClient read");
-      exit(EXIT_FAILURE);
-    } else if (n == 0) {
-      break;
-    }
-    n_read += n;
-    if (((char *)msgbuf)[n_read - 1] == '\n') {
-      break;
-    }
-  }
-  if (n_read == 0) {
-    return 0;
-  }
-  if (((char *)msgbuf)[n_read - 1] != '\n') {
-    fprintf(stderr, "UDPClient readline: no newline recieved\n");
-    exit(EXIT_FAILURE);
-  }
-  ((char *)msgbuf)[n_read] = '\0';
-  return n_read;
+  connected_to_ephemeral_port = true;
 }
 
 ssize_t UDPClient::write(void *msgbuf, size_t maxlen) {
-  ssize_t n_written = ::write(sockfd, msgbuf, maxlen);
+  ssize_t n_written;
+  if (!connected_to_ephemeral_port) {
+    // send to the server's well known port
+    n_written = sendto(sockfd, msgbuf, maxlen, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr));
+    if (n_written < 0) {
+      perror("UDPClient sendto");
+    }
+  } else {
+    n_written = ::write(sockfd, msgbuf, maxlen);
+  }
   return n_written;
 }
 
 ssize_t UDPClient::read(void *msgbuf, size_t maxlen) {
-  ssize_t n_read = ::read(sockfd, msgbuf, maxlen);
+  ssize_t n_read;
+  if (!connected_to_ephemeral_port) {
+    struct sockaddr_in6 server_addr;
+    socklen_t server_addr_len = sizeof(server_addr);
+    n_read = recvfrom(sockfd, msgbuf, maxlen, 0, (struct sockaddr*)&server_addr, &server_addr_len);
+    if (n_read < 0) {
+      perror("UDPClient recvfrom");
+    }
+    // start listening only to the server's ephemeral port
+    connect_to_ephemeral_port(server_addr);
+  } else {
+    n_read = ::read(sockfd, msgbuf, maxlen);
+  }
   return n_read;
 }

@@ -9,7 +9,7 @@
 
 typedef void* client_data_ptr_t;
 
-typedef void (*ClientHandlerFunction)(UDPClient*, client_data_ptr_t);
+typedef void (*ClientHandlerFunction)(UDPClient*, const char*, size_t, client_data_ptr_t);
 typedef void (*TimeoutFunction)();
 
 class UDPServer {
@@ -28,6 +28,7 @@ class UDPServer {
     std::vector<ClientHandlerFunction> handlers;
     handle_mode mode;
     bool debug_mode;
+    size_t initial_packet_buffer_size;
     client_data_ptr_t extra_data;
 
     UDPClientHandler()
@@ -37,6 +38,7 @@ class UDPServer {
           handlers(),
           mode(RoundRobin),
           debug_mode(false),
+          initial_packet_buffer_size(1024),
           extra_data(nullptr) {}
     ~UDPClientHandler();
     void set_max_clients(unsigned int max) { max_clients = max; }
@@ -45,6 +47,9 @@ class UDPServer {
     }
     void set_mode(handle_mode mode) { this->mode = mode; }
     void debug(bool mode) { debug_mode = mode; }
+    void set_initial_packet_buffer_size(size_t size) {
+      initial_packet_buffer_size = size;
+    }
     void set_extra_data(client_data_ptr_t data) { extra_data = data; }
 
     void accept(int server_sock_fd);

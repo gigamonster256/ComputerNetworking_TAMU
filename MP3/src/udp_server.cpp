@@ -321,18 +321,11 @@ void UDPServer::UDPClientHandler::accept(int server_sock_fd) {
 
   struct sockaddr_in6 client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
-  uint32_t handshake;
-  ssize_t len = recvfrom(server_sock_fd, &handshake, sizeof(handshake), 0,
+  char* first_packet = new char[initial_packet_buffer_size];
+  ssize_t len = recvfrom(server_sock_fd, first_packet, initial_packet_buffer_size, 0,
                          (struct sockaddr*)&client_addr, &client_addr_len);
   if (len < 0) {
     perror("UDPServer recvfrom");
-    return;
-  }
-
-  if (len != sizeof(handshake) || handshake != HANDSHAKE_PHASE1) {
-    if (debug_mode) {
-      fprintf(stderr, "Invalid handshake\n");
-    }
     return;
   }
 
@@ -365,8 +358,9 @@ void UDPServer::UDPClientHandler::accept(int server_sock_fd) {
       fprintf(stderr, "Calling handler\n");
     }
 
-    handler(client, extra_data);
+    handler(client, first_packet, len, extra_data);
     delete client;
+    delete[] first_packet;
     exit(EXIT_SUCCESS);
   }
   if (debug_mode) {

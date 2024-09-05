@@ -6,18 +6,12 @@ int main() {
   UDPServer server;
   server.set_port(12345)
       .set_max_clients(5)
-      .add_handler([](UDPClient* client, client_data_ptr_t) {
-        char buf[1024];
-        fprintf(stderr, "Handling connection from %s\n", client->peer_ip());
-        size_t len = client->read(buf, sizeof(buf));
-        if (len == 0) {
-          return;
-        }
-        buf[len] = '\0';
-        printf("Received: %s\n", buf);
-        client->writen(buf, len);
+      .add_handler([](UDPClient* client, const char* msg, size_t len,
+                      client_data_ptr_t) {
+        fprintf(stderr, "Received message: %s\n", msg);
+        client->write((void*)msg, len);
       })
-      //   .debug(true)
+      .debug(true)
       .exec();
   return 0;
 }

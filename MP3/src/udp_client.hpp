@@ -9,16 +9,12 @@ class UDPClient {
   struct sockaddr_in6 peer_addr;
   int sockfd;
   char peer_ip_addr[INET6_ADDRSTRLEN];
+  bool connected_to_ephemeral_port = false;
 
  public:
   // connect to server
   UDPClient(const char* server, int initial_port_no);
   ~UDPClient();
-
-  // simple I/O (crashes on error)
-  size_t writen(void* msgbuf, size_t len);
-  size_t readn(void* msgbuf, size_t len);
-  size_t readline(void* msgbuf, size_t maxlen);
 
   // passthrough I/O (sets errno on error)
   ssize_t write(void* msgbuf, size_t maxlen);
@@ -32,7 +28,8 @@ class UDPClient {
 
  private:
   // connect back to client
-  UDPClient(struct sockaddr_in6 client_addr);
+  UDPClient(const struct sockaddr_in6& client_addr);
+  void connect_to_ephemeral_port(const struct sockaddr_in6& server_addr);
 
   friend class UDPServer;
 };
