@@ -121,6 +121,7 @@ void TCPServer::run_server() {
     fprintf(stderr, "Starting server process pid: %d\n", getpid());
   }
 
+  // create a socket file descriptor for the server
   server_sock_fd = socket(AF_INET6, SOCK_STREAM, 0);
   if (server_sock_fd < 0) {
     perror("TCPServer socket");
