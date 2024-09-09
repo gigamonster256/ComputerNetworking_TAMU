@@ -30,9 +30,9 @@ sbcp.o: sbcp.cpp sbcp.hpp
 sbcp_messages.o: sbcp_messages.cpp sbcp_messages.hpp
 	$(CXX) $(CXXFLAGS) -c sbcp_messages.cpp
 
-tcp_server.o: tcp_server.cpp common.hpp
+tcp_server.o: tcp_server.cpp
 	$(CXX) $(CXXFLAGS) -c tcp_server.cpp
 
-tcp_client.o: tcp_client.cpp common.hpp
+tcp_client.o: tcp_client.cpp
 	$(CXX) $(CXXFLAGS) -c tcp_client.cpp
 

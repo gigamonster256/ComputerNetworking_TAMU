@@ -9,9 +9,7 @@
 #include <cassert>
 #include <chrono>
 
-UDPClient::UDPClient(const struct sockaddr_in6& client_addr) {
-  version = IPv6;
-  peer_addr = client_addr;
+UDPClient::UDPClient(const struct sockaddr_in6 &client_addr) {
   connected_to_ephemeral_port = true;
   sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
   if (sockfd < 0) {
@@ -37,20 +35,20 @@ UDPClient::UDPClient(const char *server, int port_no) {
   fprintf(stderr, "Connecting to server %s\n", server);
   fprintf(stderr, "Port: %d\n", port_no);
   // figure out if we are using IPv4 or IPv6 based on the server address
-  version = IPv4;
   // simple check for colons in the address
+  bool is_ipv6 = false;
   for (auto p = server; *p; p++) {
     if (*p == ':') {
-      version = IPv6;
+      is_ipv6 = true;
       break;
     }
   }
+
   // convert to v6 if it is v4
-  if (version == IPv4) {
-    snprintf(peer_ip_addr, sizeof(peer_addr), "::ffff:%s", server);
-    version = IPv6;
+  if (!is_ipv6) {
+    snprintf(peer_ip_addr, INET6_ADDRSTRLEN, "::ffff:%s", server);
   } else {
-    strcpy(peer_ip_addr, server);
+    strncpy(peer_ip_addr, server, INET6_ADDRSTRLEN);
   }
 
   sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -59,10 +57,10 @@ UDPClient::UDPClient(const char *server, int port_no) {
     exit(EXIT_FAILURE);
   }
 
-  memset(&peer_addr, 0, sizeof(peer_addr));
-  peer_addr.sin6_family = AF_INET6;
-  peer_addr.sin6_port = htons(port_no);
-  if (inet_pton(AF_INET6, peer_ip_addr, &peer_addr.sin6_addr) < 0) {
+  memset(&server_addr, 0, sizeof(server_addr));
+  server_addr.sin6_family = AF_INET6;
+  server_addr.sin6_port = htons(port_no);
+  if (inet_pton(AF_INET6, peer_ip_addr, &server_addr.sin6_addr) < 0) {
     perror("UDPClient inet_pton");
     exit(EXIT_FAILURE);
   }
@@ -74,14 +72,16 @@ UDPClient::~UDPClient() {
   }
 }
 
-void UDPClient::connect_to_ephemeral_port(const struct sockaddr_in6& server_addr) {
+void UDPClient::connect_to_ephemeral_port(
+    const struct sockaddr_in6 &server_addr) {
   // connect to the server's ephemeral port
-  if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+  if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) <
+      0) {
     perror("UDPClient connect");
     exit(EXIT_FAILURE);
   }
-  peer_addr = server_addr;
-  if (inet_ntop(AF_INET6, &server_addr.sin6_addr, peer_ip_addr, sizeof(peer_ip_addr)) == NULL) {
+  if (inet_ntop(AF_INET6, &server_addr.sin6_addr, peer_ip_addr,
+                sizeof(peer_ip_addr)) == NULL) {
     perror("TCPClient inet_ntop");
   }
   connected_to_ephemeral_port = true;
@@ -91,7 +91,7 @@ ssize_t UDPClient::write(void *msgbuf, size_t maxlen) {
   ssize_t n_written;
   if (!connected_to_ephemeral_port) {
     // send to the server's well known port
-    n_written = sendto(sockfd, msgbuf, maxlen, 0, (struct sockaddr*)&peer_addr, sizeof(peer_addr));
+    n_written = sendto(sockfd, msgbuf, maxlen, 0, (struct sockaddr*)&server_addr, sizeof(server_addr));
     if (n_written < 0) {
       perror("UDPClient sendto");
     }
@@ -104,9 +104,11 @@ ssize_t UDPClient::write(void *msgbuf, size_t maxlen) {
 ssize_t UDPClient::read(void *msgbuf, size_t maxlen) {
   ssize_t n_read;
   if (!connected_to_ephemeral_port) {
+    // read from the server's ephemeral port
     struct sockaddr_in6 server_addr;
     socklen_t server_addr_len = sizeof(server_addr);
-    n_read = recvfrom(sockfd, msgbuf, maxlen, 0, (struct sockaddr*)&server_addr, &server_addr_len);
+    n_read = recvfrom(sockfd, msgbuf, maxlen, 0,
+                      (struct sockaddr *)&server_addr, &server_addr_len);
     if (n_read < 0) {
       perror("UDPClient recvfrom");
     }

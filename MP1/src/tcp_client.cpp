@@ -18,54 +18,40 @@ TCPClient::TCPClient(int sockfd, sockaddr_in6 client_addr) : sockfd(sockfd) {
 
 TCPClient::TCPClient(const char *server, int port_no) {
   // figure out if we are using IPv4 or IPv6 based on the server address
-  version = IPv4;
   // simple check for colons in the address
+  bool is_ipv6 = false;
   for (auto p = server; *p; p++) {
     if (*p == ':') {
-      version = IPv6;
+      is_ipv6 = true;
       break;
     }
   }
 
-  sockfd = socket(version == IPv4 ? AF_INET : AF_INET6, SOCK_STREAM, 0);
+  // convert to v6 if it is v4
+  if (!is_ipv6) {
+    snprintf(peer_ip_addr, INET6_ADDRSTRLEN, "::ffff:%s", server);
+  } else {
+    strncpy(peer_ip_addr, server, INET6_ADDRSTRLEN);
+  }
+
+  sockfd = socket(AF_INET6, SOCK_STREAM, 0);
   if (sockfd < 0) {
     perror("TCPClient socket");
     exit(EXIT_FAILURE);
   }
 
-  switch (version) {
-    case IPv4: {
-      struct sockaddr_in addr;
-      memset(&addr, 0, sizeof(addr));
-      addr.sin_family = AF_INET;
-      addr.sin_port = htons(port_no);
-      if (inet_pton(AF_INET, server, &addr.sin_addr) < 0) {
-        perror("TCPClient inet_pton");
-        exit(EXIT_FAILURE);
-      }
+  struct sockaddr_in6 addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin6_family = AF_INET6;
+  addr.sin6_port = htons(port_no);
+  if (inet_pton(AF_INET6, server, &addr.sin6_addr) < 0) {
+    perror("TCPClient inet_pton");
+    exit(EXIT_FAILURE);
+  }
 
-      if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        perror("TCPClient connect");
-        exit(EXIT_FAILURE);
-      }
-      break;
-    }
-    case IPv6: {
-      struct sockaddr_in6 addr;
-      memset(&addr, 0, sizeof(addr));
-      addr.sin6_family = AF_INET6;
-      addr.sin6_port = htons(port_no);
-      if (inet_pton(AF_INET6, server, &addr.sin6_addr) < 0) {
-        perror("TCPClient inet_pton");
-        exit(EXIT_FAILURE);
-      }
-
-      if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        perror("TCPClient connect");
-        exit(EXIT_FAILURE);
-      }
-      break;
-    }
+  if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    perror("TCPClient connect");
+    exit(EXIT_FAILURE);
   }
 }
 

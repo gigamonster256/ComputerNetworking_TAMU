@@ -4,7 +4,6 @@
 #include <mutex>
 #include <vector>
 
-#include "common.hpp"
 #include "tcp_client.hpp"
 
 typedef void* client_data_ptr_t;

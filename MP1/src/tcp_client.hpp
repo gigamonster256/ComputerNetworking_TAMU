@@ -1,11 +1,12 @@
 #ifndef _TCP_CLIENT_HPP_
 #define _TCP_CLIENT_HPP_
 
-#include "common.hpp"
+#include <arpa/inet.h>
+#include <netinet/ip.h>
+#include <sys/socket.h>
 
 class TCPClient {
  private:
-  ip_version version;
   int sockfd;
   char peer_ip_addr[INET6_ADDRSTRLEN];
 

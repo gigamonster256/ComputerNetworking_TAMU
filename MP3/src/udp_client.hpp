@@ -5,8 +5,7 @@
 
 class UDPClient {
  private:
-  ip_version version;
-  struct sockaddr_in6 peer_addr;
+  struct sockaddr_in6 server_addr;
   int sockfd;
   char peer_ip_addr[INET6_ADDRSTRLEN];
   bool connected_to_ephemeral_port = false;

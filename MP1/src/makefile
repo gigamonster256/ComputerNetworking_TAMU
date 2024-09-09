@@ -22,10 +22,10 @@ echos: server.cpp tcp_client.o tcp_server.o
 echo: client.cpp tcp_client.o 
 	$(CXX) $(CXXFLAGS) -o echo client.cpp tcp_client.o
 
-tcp_server.o: tcp_server.cpp common.hpp
+tcp_server.o: tcp_server.cpp
 	$(CXX) $(CXXFLAGS) -c tcp_server.cpp
 
-tcp_client.o: tcp_client.cpp common.hpp
+tcp_client.o: tcp_client.cpp
 	$(CXX) $(CXXFLAGS) -c tcp_client.cpp
 
 
