@@ -1,7 +1,6 @@
 #ifndef _TCP_SERVER_HPP_
 #define _TCP_SERVER_HPP_
 
-#include <mutex>
 #include <vector>
 
 #include "tcp_client.hpp"

@@ -1,17 +1,12 @@
 #include "tcp_server.hpp"
 
+#include <assert.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
-
-#include <algorithm>
-#include <cassert>
-#include <utility>
 
 TCPServer::~TCPServer() { stop(true); }
 
@@ -121,6 +116,7 @@ void TCPServer::run_server() {
     fprintf(stderr, "Starting server process pid: %d\n", getpid());
   }
 
+  // create a socket file descriptor for the server
   server_sock_fd = socket(AF_INET6, SOCK_STREAM, 0);
   if (server_sock_fd < 0) {
     perror("TCPServer socket");

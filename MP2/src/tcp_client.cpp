@@ -6,9 +6,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <cassert>
-#include <chrono>
-
 TCPClient::TCPClient(int sockfd, sockaddr_in6 client_addr) : sockfd(sockfd) {
   if (inet_ntop(AF_INET6, &client_addr.sin6_addr, peer_ip_addr,
                 sizeof(peer_ip_addr)) == NULL) {

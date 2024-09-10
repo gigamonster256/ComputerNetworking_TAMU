@@ -2,8 +2,6 @@
 #define _TCP_CLIENT_HPP_
 
 #include <arpa/inet.h>
-#include <netinet/ip.h>
-#include <sys/socket.h>
 
 class TCPClient {
  private:
