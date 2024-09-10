@@ -14,8 +14,12 @@ class TCPClient {
   ~TCPClient();
 
   // simple I/O (crashes on error)
-  size_t writen(void* msgbuf, size_t len);
-  size_t readn(void* msgbuf, size_t len);
+  void readn(void* msgbuf, size_t len);
+
+  // block until all bytes are written
+  ssize_t writen(void* msgbuf, size_t len);
+
+  // read a line of text (or up to maxlen - 1 bytes)
   size_t readline(void* msgbuf, size_t maxlen);
 
   // passthrough I/O (sets errno on error)

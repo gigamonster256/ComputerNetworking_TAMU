@@ -20,11 +20,26 @@ int main(int argc, char *argv[]) {
   int port = atoi(argv[2]);
 
   TCPClient client(server, port);
-  char buf[1024];
+  char buf[512];
+  
+  // read from stdin until EOF
   while (fgets(buf, sizeof(buf), stdin)) {
-    client.writen(buf, strlen(buf));
-    client.readline(buf, sizeof(buf));
-    fputs(buf, stdout);
+    // write stdin to server until newline is encountered
+    size_t len = strlen(buf);
+    client.writen(buf, len);
+    if (buf[len - 1] != '\n') {
+      continue;
+    }
+
+    // read until newline is encountered
+    do {
+      len = client.readline(buf, sizeof(buf));
+      if (len == 0) {
+        // server closed connection :(
+        exit(EXIT_FAILURE);
+      }
+      fputs(buf, stdout);
+    } while (buf[len - 1] != '\n');
   }
   return 0;
 }

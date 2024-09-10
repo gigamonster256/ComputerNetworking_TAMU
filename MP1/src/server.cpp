@@ -12,9 +12,9 @@ void usage(const char *progname) {
 }
 
 void echo_handler(TCPClient *client, void *) {
-  char buffer[1024];
+  char buffer[256];
   while (true) {
-    int bytes_read = client->read(buffer, sizeof(buffer));
+    size_t bytes_read = client->read(buffer, sizeof(buffer));
     if (bytes_read < 0) {
       perror("read");
       break;
@@ -25,8 +25,8 @@ void echo_handler(TCPClient *client, void *) {
       break;
     }
 
-    int bytes_written = client->writen(buffer, bytes_read);
-    if (bytes_written < 0 || bytes_written != bytes_read) {
+    ssize_t bytes_read = client->writen(buffer, bytes_read);
+    if (bytes_written < 0) {
       perror("write");
       break;
     }

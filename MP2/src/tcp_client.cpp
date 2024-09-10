@@ -58,7 +58,7 @@ TCPClient::~TCPClient() {
   }
 }
 
-size_t TCPClient::writen(void *msgbuf, size_t len) {
+ssize_t TCPClient::writen(void *msgbuf, size_t len) {
   size_t n = 0;
   while (n < len) {
     ssize_t n_written = ::write(sockfd, (char *)msgbuf + n, len - n);
@@ -66,19 +66,14 @@ size_t TCPClient::writen(void *msgbuf, size_t len) {
       if (errno == EINTR) {
         continue;
       }
-      perror("TCPClient write");
-      exit(EXIT_FAILURE);
+      return n_written;
     }
     n += n_written;
-  }
-  if (n < len) {
-    fprintf(stderr, "TCPClient writen: short write\n");
-    exit(EXIT_FAILURE);
   }
   return n;
 }
 
-size_t TCPClient::readn(void *msgbuf, size_t len) {
+void TCPClient::readn(void *msgbuf, size_t len) {
   size_t n = 0;
   while (n < len) {
     ssize_t n_read = ::read(sockfd, (char *)msgbuf + n, len - n);
@@ -89,15 +84,11 @@ size_t TCPClient::readn(void *msgbuf, size_t len) {
       perror("TCPClient read");
       exit(EXIT_FAILURE);
     } else if (n_read == 0) {
-      break;
+      fprintf(stderr, "TCPClient read EOF before finished\n");
+      exit(EXIT_FAILURE);
     }
     n += n_read;
   }
-  if (n < len) {
-    fprintf(stderr, "TCPClient readn: short read\n");
-    exit(EXIT_FAILURE);
-  }
-  return n;
 }
 
 size_t TCPClient::readline(void *msgbuf, size_t maxlen) {
@@ -121,20 +112,14 @@ size_t TCPClient::readline(void *msgbuf, size_t maxlen) {
   if (n_read == 0) {
     return 0;
   }
-  if (((char *)msgbuf)[n_read - 1] != '\n') {
-    fprintf(stderr, "TCPClient readline: no newline recieved\n");
-    exit(EXIT_FAILURE);
-  }
   ((char *)msgbuf)[n_read] = '\0';
   return n_read;
 }
 
 ssize_t TCPClient::write(void *msgbuf, size_t maxlen) {
-  ssize_t n_written = ::write(sockfd, msgbuf, maxlen);
-  return n_written;
+  return ::write(sockfd, msgbuf, maxlen);
 }
 
 ssize_t TCPClient::read(void *msgbuf, size_t maxlen) {
-  ssize_t n_read = ::read(sockfd, msgbuf, maxlen);
-  return n_read;
+  return ::read(sockfd, msgbuf, maxlen);
 }

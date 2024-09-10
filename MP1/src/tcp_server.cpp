@@ -349,6 +349,7 @@ void TCPServer::TCPClientHandler::accept(int server_sock_fd) {
   auto pid = fork();
   if (pid < 0) {
     perror("TCPClientHandler fork");
+    close(client_sock_fd);
     return;
   }
   if (pid == 0) {
