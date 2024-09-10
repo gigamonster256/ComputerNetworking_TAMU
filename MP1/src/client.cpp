@@ -1,12 +1,13 @@
 // tcp echo client
 
-#include <iostream>
-#include <cstring>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "tcp_client.hpp"
 
 void usage(const char *progname) {
-  std::cerr << "Usage: " << progname << " <server> <port>" << std::endl;
+  fprintf(stderr, "Usage: %s <server> <port>\n", progname);
   exit(1);
 }
 
@@ -20,7 +21,7 @@ int main(int argc, char *argv[]) {
 
   TCPClient client(server, port);
   char buf[1024];
-  while(fgets(buf, sizeof(buf), stdin)) {
+  while (fgets(buf, sizeof(buf), stdin)) {
     client.writen(buf, strlen(buf));
     client.readline(buf, sizeof(buf));
     fputs(buf, stdout);
