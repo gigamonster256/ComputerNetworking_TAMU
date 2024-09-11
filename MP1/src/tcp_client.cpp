@@ -41,7 +41,7 @@ TCPClient::TCPClient(const char *server, int port_no) {
   memset(&addr, 0, sizeof(addr));
   addr.sin6_family = AF_INET6;
   addr.sin6_port = htons(port_no);
-  if (inet_pton(AF_INET6, server, &addr.sin6_addr) < 0) {
+  if (inet_pton(AF_INET6, peer_ip_addr, &addr.sin6_addr) < 0) {
     perror("TCPClient inet_pton");
     exit(EXIT_FAILURE);
   }
