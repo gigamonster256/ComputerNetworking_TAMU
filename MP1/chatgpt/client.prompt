@@ -1,0 +1,1 @@
+write a C or C++ client program that connects to a TCP echo server according to RFC 862 and allows the user to send data through standard in. the server sends that data to the ech server and then the client receives the echo and prints it. This process loops until the user kills the client or sends the EOF flag.
