@@ -19,3 +19,7 @@ make
 ./echo <IP Address> <port number>
 ```
 4. Repeat step 3 in order to create new clients and connect to the server.
+
+## Contribution
+Caleb:
+Rishabh:

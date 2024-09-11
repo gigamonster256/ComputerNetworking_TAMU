@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-port=7
+port=2000
 
 # build the project
 make -C ../src/ &> /dev/null
