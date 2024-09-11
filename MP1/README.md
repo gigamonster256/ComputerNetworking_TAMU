@@ -1,5 +1,5 @@
-# Simple Broadcast Chat Server
+# TCP Echo Server and Client
 
-## Interesting files
-- sbcp: holds all base definitions for the SBCP protocol datastructures... useful for making raw SBCP messages
-- sbcp_messages: Helpers for creating SBCP messages that conform to the SPCP server/client interaction
+## Architecture
+- tcp_server: Library of members and methods used to setup and run a TCP echo server.
+- tcp_client: Library of members and methods used to setup and run a TCP echo client.
