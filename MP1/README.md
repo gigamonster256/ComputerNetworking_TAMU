@@ -21,5 +21,5 @@ make
 4. Repeat step 3 in order to create new clients and connect to the server.
 
 ## Contribution
-Caleb: Architecture and code for the TCP server and client libraries and main files.
-Rishabh: Improvements to the code for TCP server and client libraries and test cases.
+- Caleb: Architecture and code for the TCP server and client libraries and main files.
+- Rishabh: Improvements to the code for TCP server and client libraries and test cases.
