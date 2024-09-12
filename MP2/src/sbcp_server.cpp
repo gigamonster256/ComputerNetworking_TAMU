@@ -45,12 +45,15 @@ ssize_t read_message(tcp::Client *client, message_t *message) {
   return read_message(client->get_fd(), message);
 }
 
+// global temp dir set on server start
+char *temp_dir;
+
 std::string main_fifo_name(pid_t pid) {
-  return "/tmp/sbcp/" + std::to_string(pid) + "_main";
+  return temp_dir + std::string("/") + std::to_string(pid) + "_main";
 }
 
 std::string handler_fifo_name(pid_t pid) {
-  return "/tmp/sbcp/" + std::to_string(pid) + "_handler";
+  return temp_dir + std::string("/") + std::to_string(pid) + "_handler";
 }
 
 void client_handler(tcp::Client *client, void *extra_data) {
@@ -262,11 +265,14 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  // make sure /tmp/sbcp exists
-  if (mkdir("/tmp/sbcp", 0777) < 0 && errno != EEXIST) {
-    perror("mkdir");
+  // make temp dir
+  char temp[] = "/tmp/sbcp_XXXXXX";
+  temp_dir = mkdtemp(temp);
+  if (temp_dir == NULL) {
+    perror("mkdtemp");
     exit(EXIT_FAILURE);
   }
+  fprintf(stderr, "Temp dir: %s\n", temp_dir);
 
   tcp::Server server;
   auto pid = server.set_port(port)
@@ -422,6 +428,9 @@ int main(int argc, char *argv[]) {
 
   // add way to close server?
   assert(false);
+
+  // cleanup temp dir
+  rmdir(temp_dir);
 
   waitpid(pid, nullptr, 0);
   close(pipefd[0]);
