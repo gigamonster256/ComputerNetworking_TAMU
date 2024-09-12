@@ -6,27 +6,27 @@
 #define ANSI_C_DATE_FORMAT "%a %b %e %H:%M:%S %Y"
 
 #include <ctime>
-#include <string>
 #include <iostream>
+#include <string>
 
 namespace http {
 
-class HTTPDate {
+class Date {
  private:
   std::time_t date;
 
  public:
-  HTTPDate(const std::string& date);
+  Date(const std::string& date);
 
-  bool operator<(const HTTPDate& other) const;
-  bool operator>(const HTTPDate& other) const;
-  bool operator<=(const HTTPDate& other) const;
-  bool operator>=(const HTTPDate& other) const;
-  bool operator==(const HTTPDate& other) const;
-  bool operator!=(const HTTPDate& other) const;
+  bool operator<(const Date& other) const;
+  bool operator>(const Date& other) const;
+  bool operator<=(const Date& other) const;
+  bool operator>=(const Date& other) const;
+  bool operator==(const Date& other) const;
+  bool operator!=(const Date& other) const;
 
   std::string to_string() const;
-  friend std::ostream& operator<<(std::ostream& os, const HTTPDate& date);
+  friend std::ostream& operator<<(std::ostream& os, const Date& date);
 };
 
 }  // namespace http

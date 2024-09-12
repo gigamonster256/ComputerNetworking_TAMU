@@ -7,7 +7,7 @@
 
 namespace http {
 
-HTTPDate::HTTPDate(const std::string& date) {
+Date::Date(const std::string& date) {
   struct tm tm;
   if (strptime(date.c_str(), RFC_1123_DATE_FORMAT, &tm) != nullptr) {
     this->date = mktime(&tm);
@@ -27,38 +27,38 @@ HTTPDate::HTTPDate(const std::string& date) {
   throw DateParseError(date);
 }
 
-bool HTTPDate::operator<(const HTTPDate& other) const {
+bool Date::operator<(const Date& other) const {
   return this->date < other.date;
 }
 
-bool HTTPDate::operator>(const HTTPDate& other) const {
+bool Date::operator>(const Date& other) const {
   return this->date > other.date;
 }
 
-bool HTTPDate::operator<=(const HTTPDate& other) const {
+bool Date::operator<=(const Date& other) const {
   return this->date <= other.date;
 }
 
-bool HTTPDate::operator>=(const HTTPDate& other) const {
+bool Date::operator>=(const Date& other) const {
   return this->date >= other.date;
 }
 
-bool HTTPDate::operator==(const HTTPDate& other) const {
+bool Date::operator==(const Date& other) const {
   return this->date == other.date;
 }
 
-bool HTTPDate::operator!=(const HTTPDate& other) const {
+bool Date::operator!=(const Date& other) const {
   return this->date != other.date;
 }
 
-std::string HTTPDate::to_string() const {
+std::string Date::to_string() const {
   struct tm* tm = gmtime(&date);
   char buffer[128];
   strftime(buffer, sizeof(buffer), RFC_1123_DATE_FORMAT, tm);
   return std::string(buffer);
 }
 
-std::ostream& operator<<(std::ostream& os, const HTTPDate& date) {
+std::ostream& operator<<(std::ostream& os, const Date& date) {
   os << date.to_string();
   return os;
 }

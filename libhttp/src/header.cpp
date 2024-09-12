@@ -25,9 +25,11 @@ std::string Header::to_string() { return name + ": " + value + CRLF; }
 GeneralHeader::GeneralHeader(const std::string& name, const std::string& value)
     : Header(name, value) {}
 
-Date::Date(const std::string& value)
+DateHeader::DateHeader(const std::string& value)
     : GeneralHeader("Date", value), date(value) {}
-std::string Date::to_string() { return name + ": " + date.to_string() + CRLF; }
+std::string DateHeader::to_string() {
+  return name + ": " + date.to_string() + CRLF;
+}
 
 Header* Header::parse_header(const std::string& header) {
   std::string name;
@@ -45,7 +47,7 @@ Header* Header::parse_header(const std::string& header) {
   value = header.substr(value_start);
   switch (get_header_type(name)) {
     case HeaderType::Date:
-      return new Date(value);
+      return new DateHeader(value);
     default:
       throw HeaderParseError(header);
   }

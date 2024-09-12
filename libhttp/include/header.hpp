@@ -29,12 +29,12 @@ class GeneralHeader : public Header {
   GeneralHeader(const std::string &name, const std::string &value);
 };
 
-class Date : public GeneralHeader {
+class DateHeader : public GeneralHeader {
  private:
-  HTTPDate date;
+  Date date;
 
  public:
-  Date(const std::string &value);
+  DateHeader(const std::string &value);
   std::string to_string() override;
 };
 

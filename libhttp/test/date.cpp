@@ -26,16 +26,16 @@ int main() {
   std::cout << "RFC 850: " << now_850 << std::endl;
   std::cout << "ANSI C: " << now_ansi << std::endl;
 
-  HTTPDate date(now_1123);
-  std::cout << "HTTPDate: " << date << std::endl;
-  date = HTTPDate(now_850);
-  std::cout << "HTTPDate: " << date << std::endl;
-  date = HTTPDate(now_ansi);
-  std::cout << "HTTPDate: " << date << std::endl;
+  Date date(now_1123);
+  std::cout << "Date: " << date << std::endl;
+  date = Date(now_850);
+  std::cout << "Date: " << date << std::endl;
+  date = Date(now_ansi);
+  std::cout << "Date: " << date << std::endl;
 
   try {
     // missing comma after wkday
-    HTTPDate date("Wed 09 Jun 2021 10:18:14 GMT");
+    Date date("Wed 09 Jun 2021 10:18:14 GMT");
     exit(EXIT_FAILURE);
   } catch (DateParseError& e) {
     std::cerr << "DateParseError: " << e.what() << std::endl;
@@ -43,7 +43,7 @@ int main() {
 
   try {
     // garbage date
-    HTTPDate date("garbage");
+    Date date("garbage");
     exit(EXIT_FAILURE);
   } catch (DateParseError& e) {
     std::cerr << "DateParseError: " << e.what() << std::endl;
