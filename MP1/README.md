@@ -1,8 +1,12 @@
 # TCP Echo Server and Client
 
 ## Architecture
-- tcp_server: Library of members and methods used to setup and run a TCP echo server.
-- tcp_client: Library of members and methods used to setup and run a TCP echo client.
+- tcp_server: Library of members and methods used to setup and run a TCP server.
+- tcp_client: Library of members and methods used to setup and run a TCP client.
+- server: provides a handler to handle incoming TCP connections passed from the tcp_server
+- client: uses the tcp_client library to create a TCP connection and send data to the echo server
+
+![Architecture image](./mp1_ecen602.drawio.png)
 
 ## Usage
 To run the project, use the following commands:
