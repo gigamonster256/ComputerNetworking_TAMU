@@ -1,7 +1,9 @@
-#include "http/client.hpp"
+#include "client.hpp"
+
+using namespace http;
 
 int main() {
-  http::Client client;
+  Client client;
   client.get("neverssl.com", "/");
   return 0;
 }
