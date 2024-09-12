@@ -9,7 +9,8 @@ ifeq ($(shell hostname), ecen602)
 	CXXFLAGS = -std=c++17 -Wall -Wextra -Werror
 endif
 
-LIBS = -L../../libs -ltcp
+LIBS = -L../../libtcp -ltcp
+LIBTCP = ../../libtcp/libtcp.a
 INCLUDE = -I../../include
 
 all: echos echo
@@ -20,16 +21,13 @@ clean :
 	rm -f *.o
 	rm -rf *.dSYM
 
-echos: server.cpp tcp_client.o tcp_server.o
-	$(CXX) $(CXXFLAGS) -o echos server.cpp tcp_client.o tcp_server.o
+echos: echo_server.cpp $(LIBTCP)
+	$(CXX) $(CXXFLAGS) -o echos $(LIBS) $(INCLUDE) echo_server.cpp
 
-echo: client.cpp tcp_client.o 
-	$(CXX) $(CXXFLAGS) -o echo client.cpp tcp_client.o
+echo: echo_client.cpp $(LIBTCP)
+	$(CXX) $(CXXFLAGS) -o echo $(LIBS) $(INCLUDE) echo_client.cpp
 
-tcp_server.o: tcp_server.cpp
-	$(CXX) $(CXXFLAGS) -c tcp_server.cpp
-
-tcp_client.o: tcp_client.cpp
-	$(CXX) $(CXXFLAGS) -c tcp_client.cpp
+$(LIBTCP):
+	$(MAKE) -C ../../libtcp MODE=static
 
 

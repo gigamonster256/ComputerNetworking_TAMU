@@ -9,7 +9,9 @@ ifeq ($(shell hostname), ecen602)
 	CXXFLAGS = -std=c++17 -Wall -Wextra -Werror
 endif
 
-LIBS = -L../../libs -ltcp -lsbcp
+LIBS = -L../../libtcp -L../../libsbcp -ltcp -lsbcp
+LIBTCP = ../../libtcp/libtcp.a
+LIBSBCP = ../../libsbcp/libsbcp.a
 INCLUDE = -I../../include
 
 all: server client
@@ -18,17 +20,15 @@ clean:
 	rm -f client
 	rm -f *.o
 	rm -rf *.dSYM
-	rm -f *_publish
-	rm -f *_subscribe
 
-client: sbcp_client.cpp ../../libs/libtcp.a ../../libs/libsbcp.a
+client: sbcp_client.cpp $(LIBTCP) $(LIBSBCP)
 	$(CXX) $(CXXFLAGS) -o client $(LIBS) $(INCLUDE) sbcp_client.cpp
 
-server: sbcp_server.cpp ../../libs/libtcp.a ../../libs/libsbcp.a
+server: sbcp_server.cpp $(LIBTCP) $(LIBSBCP)
 	$(CXX) $(CXXFLAGS) -o server $(LIBS) $(INCLUDE) sbcp_server.cpp
 
-../../libs/libtcp.a:
-	$(MAKE) -C ../../ libs/libtcp.a
+$(LIBTCP):
+	$(MAKE) -C ../../libtcp MODE=static
 
-../../libs/libsbcp.a:
-	$(MAKE) -C ../../ libs/libsbcp.a
+$(LIBSBCP):
+	$(MAKE) -C ../../libsbcp MODE=static
