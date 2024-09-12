@@ -1,24 +1,24 @@
 {pkgs}: {
   echos = pkgs.stdenv.mkDerivation {
     name = "echos";
-    src = ./src;
+    src = ../.;
     buildPhase = ''
-      make echos
+      make -C MP1/src echos
     '';
     installPhase = ''
       mkdir -p $out/bin
-      cp -r echos $out/bin
+      cp -r MP1/src/echos $out/bin
     '';
   };
   echo = pkgs.stdenv.mkDerivation {
     name = "echo";
-    src = ./src;
+    src = ../.;
     buildPhase = ''
-      make echo
+      make -C MP1/src echo
     '';
     installPhase = ''
       mkdir -p $out/bin
-      cp -r echo $out/bin
+      cp -r MP1/src/echo $out/bin
     '';
   };
 }

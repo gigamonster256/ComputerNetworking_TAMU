@@ -3,16 +3,18 @@
 
 #include <vector>
 
-#include "tcp_client.hpp"
+#include "client.hpp"
+
+namespace tcp {
 
 typedef void* client_data_ptr_t;
 
-typedef void (*ClientHandlerFunction)(TCPClient*, client_data_ptr_t);
+typedef void (*ClientHandlerFunction)(Client*, client_data_ptr_t);
 typedef void (*TimeoutFunction)();
 
-class TCPServer {
+class Server {
  public:
-  class TCPClientHandler {
+  class ClientHandler {
    public:
     enum handle_mode { RoundRobin, Random };
 
@@ -28,7 +30,7 @@ class TCPServer {
     bool debug_mode;
     client_data_ptr_t extra_data;
 
-    TCPClientHandler()
+    ClientHandler()
         : current_handler(0),
           clients(),
           max_clients(5),
@@ -36,7 +38,7 @@ class TCPServer {
           mode(RoundRobin),
           debug_mode(false),
           extra_data(nullptr) {}
-    ~TCPClientHandler();
+    ~ClientHandler();
     void set_max_clients(unsigned int max) { max_clients = max; }
     void add_handler(ClientHandlerFunction handler) {
       handlers.push_back(handler);
@@ -51,13 +53,13 @@ class TCPServer {
     void terminate_clients();
     void kill_clients();
 
-    friend class TCPServer;
+    friend class Server;
   };
 
  private:
   // operational data
   int server_sock_fd;
-  TCPClientHandler client_handler;
+  ClientHandler client_handler;
   pid_t server_pid;
   unsigned int timeout_count;
 
@@ -70,7 +72,7 @@ class TCPServer {
   TimeoutFunction timeout_handler;
 
  public:
-  TCPServer()
+  Server()
       : server_sock_fd(-1),
         client_handler(),
         server_pid(-1),
@@ -81,21 +83,21 @@ class TCPServer {
         backlog(5),
         debug_mode(false),
         timeout_handler(nullptr) {}
-  ~TCPServer();
+  ~Server();
 
   // server configuration
-  TCPServer& set_port(unsigned int port_no);
-  TCPServer& set_timeout(unsigned int seconds);
-  TCPServer& set_max_timeouts(unsigned int seconds);
-  TCPServer& set_backlog(unsigned int size);
-  TCPServer& debug(bool mode);
-  TCPServer& set_timeout_handler(TimeoutFunction handler);
+  Server& set_port(unsigned int port_no);
+  Server& set_timeout(unsigned int seconds);
+  Server& set_max_timeouts(unsigned int seconds);
+  Server& set_backlog(unsigned int size);
+  Server& debug(bool mode);
+  Server& set_timeout_handler(TimeoutFunction handler);
 
   // client handler configuration
-  TCPServer& add_handler(ClientHandlerFunction handler);
-  TCPServer& set_handler_mode(TCPClientHandler::handle_mode mode);
-  TCPServer& set_max_clients(unsigned int max_clients);
-  TCPServer& add_handler_extra_data(void* data);
+  Server& add_handler(ClientHandlerFunction handler);
+  Server& set_handler_mode(ClientHandler::handle_mode mode);
+  Server& set_max_clients(unsigned int max_clients);
+  Server& add_handler_extra_data(void* data);
 
   // server operation
   pid_t start();
@@ -105,5 +107,7 @@ class TCPServer {
  private:
   void run_server();
 };
+
+}  // namespace tcp
 
 #endif

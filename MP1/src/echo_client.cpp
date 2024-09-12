@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "tcp_client.hpp"
+#include "tcp/client.hpp"
+
+using namespace tcp;
 
 void usage(const char *progname) {
   fprintf(stderr, "Usage: %s <server> <port>\n", progname);
@@ -19,9 +21,9 @@ int main(int argc, char *argv[]) {
   const char *server = argv[1];
   int port = atoi(argv[2]);
 
-  TCPClient client(server, port);
+  Client client(server, port);
   char buf[512];
-  
+
   // read from stdin until EOF
   while (fgets(buf, sizeof(buf), stdin)) {
     // write stdin to server until newline is encountered

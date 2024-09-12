@@ -1,9 +1,11 @@
+#include "udp/client.hpp"
+
 #include <stdio.h>
 
-#include "udp_client.hpp"
+using namespace udp;
 
 int main() {
-  UDPClient client("127.0.0.1", 12345);
+  Client client("127.0.0.1", 12345);
   fprintf(stderr, "Connected to server\n");
   char message[] = "Hello, server!";
   client.write(message, sizeof(message));

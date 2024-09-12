@@ -1,4 +1,4 @@
-#include "sbcp_messages.hpp"
+#include "messages.hpp"
 
 #include <cassert>
 #include <cstring>

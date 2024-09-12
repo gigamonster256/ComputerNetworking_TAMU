@@ -3,15 +3,17 @@
 
 #include <arpa/inet.h>
 
-class TCPClient {
+namespace tcp {
+
+class Client {
  private:
   int sockfd;
   char peer_ip_addr[INET6_ADDRSTRLEN];
 
  public:
   // connect to server
-  TCPClient(const char* server, int port_no);
-  ~TCPClient();
+  Client(const char* server, int port_no);
+  ~Client();
 
   // simple I/O (crashes on error)
   void readn(void* msgbuf, size_t len);
@@ -34,9 +36,11 @@ class TCPClient {
 
  private:
   // create a channel from an existing socket
-  TCPClient(int sockfd, sockaddr_in6 client_addr);
+  Client(int sockfd, sockaddr_in6 client_addr);
 
-  friend class TCPServer;
+  friend class Server;
 };
+
+}  // namespace tcp
 
 #endif

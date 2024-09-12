@@ -1,10 +1,11 @@
-#include <iostream>
 #include <sys/select.h>
-#include <unistd.h>
 #include <time.h>
+#include <unistd.h>
 
-#include "sbcp_messages.hpp"
-#include "tcp_client.hpp"
+#include <iostream>
+
+#include "sbcp/messages.hpp"
+#include "tcp/client.hpp"
 
 using namespace sbcp;
 
@@ -24,7 +25,7 @@ int main(int argc, char *argv[]) {
   int port = atoi(argv[3]);
 
   // connect to server
-  TCPClient client(server, port);
+  tcp::Client client(server, port);
 
   // send JOIN message
   const message_t join_msg = JOIN(username);
@@ -35,11 +36,12 @@ int main(int argc, char *argv[]) {
   client.readn((void *)server_response.data(), sizeof(message_t::header_t));
   client.readn((void *)(server_response.data() + sizeof(message_t::header_t)),
                server_response.get_length());
-  
+
   // we're connected
   if (server_response.get_type() == message_t::Type::ACK) {
     std::cout << "Connected to server" << std::endl;
-    std::cout << "Client count: " << server_response.get_client_count() << std::endl;
+    std::cout << "Client count: " << server_response.get_client_count()
+              << std::endl;
     if (server_response.get_client_count() > 1) {
       std::cout << "Clients: ";
       for (const auto &username : server_response.get_usernames()) {
@@ -49,7 +51,7 @@ int main(int argc, char *argv[]) {
     } else {
       std::cout << "No other clients connected" << std::endl;
     }
-  } 
+  }
   // NAK (username in use)
   else {
     std::cerr << "Failed to connect to server" << std::endl;
@@ -65,7 +67,7 @@ int main(int argc, char *argv[]) {
   bool idle = false;
 
   // main loop
-  while(true) {
+  while (true) {
     // read from client or stdin
     fd_set readfds;
     FD_ZERO(&readfds);
@@ -77,7 +79,8 @@ int main(int argc, char *argv[]) {
     select_timeout.tv_usec = 0;
 
     // wait 1 second for input
-    int ret = select(client.get_fd() + 1, &readfds, NULL, NULL, &select_timeout);
+    int ret =
+        select(client.get_fd() + 1, &readfds, NULL, NULL, &select_timeout);
     if (ret < 0) {
       perror("select");
       exit(1);
@@ -93,7 +96,8 @@ int main(int argc, char *argv[]) {
       // check if we've been idle for 10 seconds
       struct timespec new_spec;
       clock_gettime(CLOCK_MONOTONIC, &new_spec);
-      // std::cout << "Elapsed time: " << new_spec.tv_sec - spec.tv_sec << std::endl;
+      // std::cout << "Elapsed time: " << new_spec.tv_sec - spec.tv_sec <<
+      // std::endl;
       if (new_spec.tv_sec - spec.tv_sec >= 10) {
         // std::cerr << "Idle for 10 seconds" << std::endl;
         // send IDLE message
@@ -111,7 +115,8 @@ int main(int argc, char *argv[]) {
       client.readn((void *)(msg.data() + sizeof(message_t::header_t)),
                    msg.get_length());
       if (msg.get_type() == message_t::Type::FWD) {
-        std::cout << msg.get_username() << ": " << msg.get_message() << std::endl;
+        std::cout << msg.get_username() << ": " << msg.get_message()
+                  << std::endl;
       } else if (msg.get_type() == message_t::Type::OFFLINE) {
         std::cout << msg.get_username() << " is offline" << std::endl;
       } else if (msg.get_type() == message_t::Type::ONLINE) {
@@ -119,21 +124,21 @@ int main(int argc, char *argv[]) {
       } else if (msg.get_type() == message_t::Type::IDLE) {
         std::cout << msg.get_username() << " is idle" << std::endl;
       }
-    } else 
-    // read from stdin
-    if (FD_ISSET(STDIN_FILENO, &readfds)) {
-      // not idle anymore
-      idle = false;
-      clock_gettime(CLOCK_MONOTONIC, &spec);
-
+    } else
       // read from stdin
-      std::string message;
-      std::getline(std::cin, message);
-      if (message.empty()) {
-        break;
+      if (FD_ISSET(STDIN_FILENO, &readfds)) {
+        // not idle anymore
+        idle = false;
+        clock_gettime(CLOCK_MONOTONIC, &spec);
+
+        // read from stdin
+        std::string message;
+        std::getline(std::cin, message);
+        if (message.empty()) {
+          break;
+        }
+        const message_t msg = SEND(message);
+        client.writen((void *)msg.data(), msg.size());
       }
-      const message_t msg = SEND(message);
-      client.writen((void *)msg.data(), msg.size());
-    }
   }
 }

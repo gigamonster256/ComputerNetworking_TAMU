@@ -1,9 +1,11 @@
 #ifndef _UDP_CLIENT_HPP_
 #define _UDP_CLIENT_HPP_
 
-#include "udp_common.hpp"
+#include <arpa/inet.h>
 
-class UDPClient {
+namespace udp {
+
+class Client {
  private:
   struct sockaddr_in6 server_addr;
   int sockfd;
@@ -12,8 +14,8 @@ class UDPClient {
 
  public:
   // connect to server
-  UDPClient(const char* server, int initial_port_no);
-  ~UDPClient();
+  Client(const char* server, int initial_port_no);
+  ~Client();
 
   // passthrough I/O (sets errno on error)
   ssize_t write(void* msgbuf, size_t maxlen);
@@ -27,10 +29,12 @@ class UDPClient {
 
  private:
   // connect back to client
-  UDPClient(const struct sockaddr_in6& client_addr);
+  Client(const struct sockaddr_in6& client_addr);
   void connect_to_ephemeral_port(const struct sockaddr_in6& server_addr);
 
-  friend class UDPServer;
+  friend class Server;
 };
+
+}  // namespace udp
 
 #endif

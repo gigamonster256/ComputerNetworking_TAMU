@@ -1,13 +1,13 @@
 #ifndef _SBCP_HPP_
 #define _SBCP_HPP_
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <stdexcept>
-#include <vector>
 #include <string>
-#include <cassert>
+#include <vector>
 
 #define SBCP_VERSION 3
 
@@ -59,9 +59,18 @@ typedef class Message {
     constexpr size_t size() const noexcept {
       return sizeof(type) + sizeof(length) + length;
     }
-    const char* get_username() const { assert(type == type_t::USERNAME); return payload.username; }
-    const char* get_message() const { assert(type == type_t::MESSAGE); return payload.message; }
-    const char* get_reason() const { assert(type == type_t::REASON); return payload.reason; }
+    const char* get_username() const {
+      assert(type == type_t::USERNAME);
+      return payload.username;
+    }
+    const char* get_message() const {
+      assert(type == type_t::MESSAGE);
+      return payload.message;
+    }
+    const char* get_reason() const {
+      assert(type == type_t::REASON);
+      return payload.reason;
+    }
     payload_t::client_count_t get_client_count() const noexcept {
       assert(type == type_t::CLIENT_COUNT);
       return payload.client_count;
@@ -106,11 +115,9 @@ typedef class Message {
 
  public:
   explicit constexpr Message() noexcept
-      : header(header_t{.version = SBCP_VERSION, .type = type_t::JOIN, .length = 0}),
-        payload() {}
+      : header({SBCP_VERSION, type_t::JOIN, 0}), payload() {}
   explicit constexpr Message(type_t type) noexcept
-      : header(header_t{.version = SBCP_VERSION, .type = type, .length = 0}),
-        payload() {}
+      : header({SBCP_VERSION, type, 0}), payload() {}
   void validate() const;
   void validate_version() const;
   version_t constexpr get_version() const noexcept { return header.version; }

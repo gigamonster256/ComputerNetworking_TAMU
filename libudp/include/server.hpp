@@ -1,20 +1,21 @@
 #ifndef _UDP_SERVER_HPP_
 #define _UDP_SERVER_HPP_
 
-#include <mutex>
 #include <vector>
 
-#include "udp_common.hpp"
-#include "udp_client.hpp"
+#include "client.hpp"
+
+namespace udp {
 
 typedef void* client_data_ptr_t;
 
-typedef void (*ClientHandlerFunction)(UDPClient*, const char*, size_t, client_data_ptr_t);
+typedef void (*ClientHandlerFunction)(Client*, const char*, size_t,
+                                      client_data_ptr_t);
 typedef void (*TimeoutFunction)();
 
-class UDPServer {
+class Server {
  public:
-  class UDPClientHandler {
+  class ClientHandler {
    public:
     enum handle_mode { RoundRobin, Random };
 
@@ -31,7 +32,7 @@ class UDPServer {
     size_t initial_packet_buffer_size;
     client_data_ptr_t extra_data;
 
-    UDPClientHandler()
+    ClientHandler()
         : current_handler(0),
           clients(),
           max_clients(5),
@@ -40,7 +41,7 @@ class UDPServer {
           debug_mode(false),
           initial_packet_buffer_size(1024),
           extra_data(nullptr) {}
-    ~UDPClientHandler();
+    ~ClientHandler();
     void set_max_clients(unsigned int max) { max_clients = max; }
     void add_handler(ClientHandlerFunction handler) {
       handlers.push_back(handler);
@@ -58,13 +59,13 @@ class UDPServer {
     void terminate_clients();
     void kill_clients();
 
-    friend class UDPServer;
+    friend class Server;
   };
 
  private:
   // operational data
   int server_sock_fd;
-  UDPClientHandler client_handler;
+  ClientHandler client_handler;
   pid_t server_pid;
   unsigned int timeout_count;
 
@@ -76,7 +77,7 @@ class UDPServer {
   TimeoutFunction timeout_handler;
 
  public:
-  UDPServer()
+  Server()
       : server_sock_fd(-1),
         client_handler(),
         server_pid(-1),
@@ -86,20 +87,20 @@ class UDPServer {
         max_timeouts(0),
         debug_mode(false),
         timeout_handler(nullptr) {}
-  ~UDPServer();
+  ~Server();
 
   // server configuration
-  UDPServer& set_port(unsigned int port_no);
-  UDPServer& set_timeout(unsigned int seconds);
-  UDPServer& set_max_timeouts(unsigned int seconds);
-  UDPServer& debug(bool mode);
-  UDPServer& set_timeout_handler(TimeoutFunction handler);
+  Server& set_port(unsigned int port_no);
+  Server& set_timeout(unsigned int seconds);
+  Server& set_max_timeouts(unsigned int seconds);
+  Server& debug(bool mode);
+  Server& set_timeout_handler(TimeoutFunction handler);
 
   // client handler configuration
-  UDPServer& add_handler(ClientHandlerFunction handler);
-  UDPServer& set_handler_mode(UDPClientHandler::handle_mode mode);
-  UDPServer& set_max_clients(unsigned int max_clients);
-  UDPServer& add_handler_extra_data(void* data);
+  Server& add_handler(ClientHandlerFunction handler);
+  Server& set_handler_mode(ClientHandler::handle_mode mode);
+  Server& set_max_clients(unsigned int max_clients);
+  Server& add_handler_extra_data(void* data);
 
   // server operation
   pid_t start();
@@ -109,5 +110,7 @@ class UDPServer {
  private:
   void run_server();
 };
+
+}  // namespace udp
 
 #endif

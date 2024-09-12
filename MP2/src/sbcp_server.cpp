@@ -6,13 +6,13 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <vector>
-#include <cstring>
 
-#include "sbcp_messages.hpp"
-#include "tcp_server.hpp"
+#include "sbcp/messages.hpp"
+#include "tcp/server.hpp"
 
 using namespace sbcp;
 
@@ -41,19 +41,22 @@ ssize_t read_message(int fd, message_t *message) {
   return r + r2;
 }
 
-ssize_t read_message(TCPClient *client, message_t *message) {
+ssize_t read_message(tcp::Client *client, message_t *message) {
   return read_message(client->get_fd(), message);
 }
 
+// global temp dir set on server start
+char *temp_dir;
+
 std::string main_fifo_name(pid_t pid) {
-  return "/tmp/sbcp/" + std::to_string(pid) + "_main";
+  return temp_dir + std::string("/") + std::to_string(pid) + "_main";
 }
 
 std::string handler_fifo_name(pid_t pid) {
-  return "/tmp/sbcp/" + std::to_string(pid) + "_handler";
+  return temp_dir + std::string("/") + std::to_string(pid) + "_handler";
 }
 
-void client_handler(TCPClient *client, void *extra_data) {
+void client_handler(tcp::Client *client, void *extra_data) {
   fprintf(stderr, "Handler started\n");
   std::cerr << "Peer: " << client->peer_ip() << std::endl;
 
@@ -262,13 +265,16 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  // make sure /tmp/sbcp exists
-  if (mkdir("/tmp/sbcp", 0777) < 0 && errno != EEXIST) {
-    perror("mkdir");
+  // make temp dir
+  char temp[] = "/tmp/sbcp_XXXXXX";
+  temp_dir = mkdtemp(temp);
+  if (temp_dir == NULL) {
+    perror("mkdtemp");
     exit(EXIT_FAILURE);
   }
+  fprintf(stderr, "Temp dir: %s\n", temp_dir);
 
-  TCPServer server;
+  tcp::Server server;
   auto pid = server.set_port(port)
                  .add_handler(client_handler)
                  .set_max_clients(max_clients)
@@ -422,6 +428,9 @@ int main(int argc, char *argv[]) {
 
   // add way to close server?
   assert(false);
+
+  // cleanup temp dir
+  rmdir(temp_dir);
 
   waitpid(pid, nullptr, 0);
   close(pipefd[0]);

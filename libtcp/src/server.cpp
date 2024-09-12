@@ -1,5 +1,6 @@
-#include "udp_server.hpp"
+#include "server.hpp"
 
+#include <assert.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -10,79 +11,87 @@
 #include <unistd.h>
 
 #include <algorithm>
-#include <cassert>
-#include <utility>
 
-UDPServer::~UDPServer() { stop(true); }
+namespace tcp {
 
-UDPServer& UDPServer::set_port(unsigned int port_no) {
+Server::~Server() { stop(true); }
+
+Server& Server::set_port(unsigned int port_no) {
   assert(server_pid < 0);
   assert(port_no > 0);
   this->port_no = port_no;
   return *this;
 }
 
-UDPServer& UDPServer::set_timeout(unsigned int timeout) {
+Server& Server::set_timeout(unsigned int timeout) {
   assert(server_pid < 0);
   this->timeout = timeout;
   return *this;
 }
 
-UDPServer& UDPServer::set_max_timeouts(unsigned int max_timeouts) {
+Server& Server::set_max_timeouts(unsigned int max_timeouts) {
   assert(server_pid < 0);
   this->max_timeouts = max_timeouts;
   return *this;
 }
 
-UDPServer& UDPServer::debug(bool mode) {
+Server& Server::set_backlog(unsigned int backlog) {
+  assert(server_pid < 0);
+  assert(backlog > 0);
+  this->backlog = backlog;
+  return *this;
+}
+
+Server& Server::debug(bool mode) {
   assert(server_pid < 0);
   this->debug_mode = mode;
   client_handler.debug(mode);
   return *this;
 }
 
-UDPServer& UDPServer::set_timeout_handler(TimeoutFunction handler) {
+Server& Server::set_timeout_handler(TimeoutFunction handler) {
   assert(server_pid < 0);
   this->timeout_handler = handler;
   return *this;
 }
 
-UDPServer& UDPServer::add_handler(ClientHandlerFunction handler) {
+Server& Server::add_handler(ClientHandlerFunction handler) {
   assert(server_pid < 0);
   client_handler.add_handler(handler);
   return *this;
 }
 
-UDPServer& UDPServer::set_handler_mode(UDPClientHandler::handle_mode mode) {
+Server& Server::set_handler_mode(ClientHandler::handle_mode mode) {
   assert(server_pid < 0);
   client_handler.set_mode(mode);
   return *this;
 }
 
-UDPServer& UDPServer::set_max_clients(unsigned int max_clients) {
+Server& Server::set_max_clients(unsigned int max_clients) {
   assert(server_pid < 0);
   assert(max_clients > 0);
   client_handler.max_clients = max_clients;
   return *this;
 }
 
-UDPServer& UDPServer::add_handler_extra_data(void* data) {
+Server& Server::add_handler_extra_data(void* data) {
   assert(server_pid < 0);
   client_handler.set_extra_data(data);
   return *this;
 }
 
-pid_t UDPServer::start() {
+pid_t Server::start() {
   // verify configuration
   assert(server_pid < 0);
   assert(port_no > 0);
+  assert(backlog > 0);
   assert(client_handler.max_clients > 0);
   assert(client_handler.handlers.size() > 0);
 
   server_pid = fork();
 
   if (server_pid < 0) {
-    perror("UDPServer fork");
+    perror("TCPServer fork");
     return server_pid;
   }
 
@@ -94,28 +103,29 @@ pid_t UDPServer::start() {
   return server_pid;
 }
 
-void UDPServer::exec() {
+void Server::exec() {
   auto pid = start();
 
   if (pid < 0) {
-    perror("UDPServer exec");
+    perror("TCPServer exec");
     exit(EXIT_FAILURE);
   }
 
   if (waitpid(pid, nullptr, 0) < 0) {
-    perror("UDPServer waitpid");
+    perror("TCPServer waitpid");
   }
   exit(EXIT_SUCCESS);
 }
 
-void UDPServer::run_server() {
+void Server::run_server() {
   if (debug_mode) {
     fprintf(stderr, "Starting server process pid: %d\n", getpid());
   }
 
-  server_sock_fd = socket(AF_INET6, SOCK_DGRAM, 0);
+  // create a socket file descriptor for the server
+  server_sock_fd = socket(AF_INET6, SOCK_STREAM, 0);
   if (server_sock_fd < 0) {
-    perror("UDPServer socket");
+    perror("TCPServer socket");
     exit(EXIT_FAILURE);
   }
 
@@ -127,13 +137,19 @@ void UDPServer::run_server() {
 
   if (bind(server_sock_fd, (struct sockaddr*)&server_addr,
            sizeof(server_addr)) < 0) {
-    perror("UDPServer bind");
+    perror("TCPServer bind");
+    close(server_sock_fd);
+    exit(EXIT_FAILURE);
+  }
+
+  if (listen(server_sock_fd, backlog) < 0) {
+    perror("TCPServer listen");
     close(server_sock_fd);
     exit(EXIT_FAILURE);
   }
 
   if (debug_mode) {
-    fprintf(stderr, "UDPServer started on port %d\n", port_no);
+    fprintf(stderr, "TCPServer started on port %d\n", port_no);
   }
 
   while (true) {
@@ -155,7 +171,7 @@ void UDPServer::run_server() {
 
       int ret = select(server_sock_fd + 1, &read_fds, NULL, NULL, &tv);
       if (ret < 0) {
-        perror("UDPServer select");
+        perror("TCPServer select");
         if (errno == EINTR) {
           continue;
         }
@@ -165,7 +181,7 @@ void UDPServer::run_server() {
 
       if (ret == 0) {
         if (debug_mode) {
-          fprintf(stderr, "UDPServer timeout\n");
+          fprintf(stderr, "TCPServer timeout\n");
         }
 
         timeout_count++;
@@ -204,30 +220,30 @@ void UDPServer::run_server() {
   client_handler.join_clients();
 }
 
-void UDPServer::stop(bool force) {
+void Server::stop(bool force) {
   if (server_pid < 0) {
     return;
   }
 
   if (force) {
     if (kill(server_pid, SIGKILL) < 0) {
-      perror("UDPServer kill");
+      perror("TCPServer kill");
     }
   } else {
     if (kill(server_pid, SIGTERM) < 0) {
-      perror("UDPServer kill");
+      perror("TCPServer kill");
     }
   }
 
   if (waitpid(server_pid, nullptr, 0) < 0) {
-    perror("UDPServer waitpid");
+    perror("TCPServer waitpid");
   }
 
   server_pid = -1;
 }
 
 // reap all clients that have finished
-void UDPServer::UDPClientHandler::reap_clients() {
+void Server::ClientHandler::reap_clients() {
   if (debug_mode) {
     fprintf(stderr, "Reaping clients\n");
   }
@@ -240,7 +256,7 @@ void UDPServer::UDPClientHandler::reap_clients() {
   pid_t finished;
   while (!clients.empty() && (finished = waitpid(0, nullptr, WNOHANG))) {
     if (finished < 0) {
-      perror("UDPServer waitpid");
+      perror("TCPServer waitpid");
       break;
     }
     clients.erase(std::remove(clients.begin(), clients.end(), finished),
@@ -258,28 +274,28 @@ void UDPServer::UDPClientHandler::reap_clients() {
 }
 
 // wait for all clients to finish
-void UDPServer::UDPClientHandler::join_clients() {
+void Server::ClientHandler::join_clients() {
   if (debug_mode) {
     fprintf(stderr, "Joining clients\n");
   }
 
   for (unsigned int i = 0; i < clients.size(); i++) {
     if (waitpid(clients[i], nullptr, 0) < 0) {
-      perror("UDPServer waitpid");
+      perror("TCPServer waitpid");
     }
   }
   clients.clear();
 }
 
 // tell all clients to terminate
-void UDPServer::UDPClientHandler::terminate_clients() {
+void Server::ClientHandler::terminate_clients() {
   if (debug_mode) {
     fprintf(stderr, "Terminating clients\n");
   }
 
   for (unsigned int i = 0; i < clients.size(); i++) {
     if (kill(clients[i], SIGTERM) < 0) {
-      perror("UDPServer kill");
+      perror("TCPServer kill");
     }
   }
 
@@ -287,23 +303,23 @@ void UDPServer::UDPClientHandler::terminate_clients() {
 }
 
 // kill all clients
-void UDPServer::UDPClientHandler::kill_clients() {
+void Server::ClientHandler::kill_clients() {
   if (debug_mode) {
     fprintf(stderr, "Killing clients\n");
   }
 
   for (unsigned int i = 0; i < clients.size(); i++) {
     if (kill(clients[i], SIGKILL) < 0) {
-      perror("UDPServer kill");
+      perror("TCPServer kill");
     }
   }
 
   join_clients();
 }
 
-UDPServer::UDPClientHandler::~UDPClientHandler() { kill_clients(); }
+Server::ClientHandler::~ClientHandler() { kill_clients(); }
 
-void UDPServer::UDPClientHandler::accept(int server_sock_fd) {
+void Server::ClientHandler::accept(int server_sock_fd) {
   reap_clients();
   if (debug_mode) {
     fprintf(stderr, "mode: %d, current_handler: %d\n", mode, current_handler);
@@ -321,11 +337,10 @@ void UDPServer::UDPClientHandler::accept(int server_sock_fd) {
 
   struct sockaddr_in6 client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
-  char* first_packet = new char[initial_packet_buffer_size];
-  ssize_t len = recvfrom(server_sock_fd, first_packet, initial_packet_buffer_size, 0,
-                         (struct sockaddr*)&client_addr, &client_addr_len);
-  if (len < 0) {
-    perror("UDPServer recvfrom");
+  int client_sock_fd = ::accept(server_sock_fd, (struct sockaddr*)&client_addr,
+                                &client_addr_len);
+  if (client_sock_fd < 0) {
+    perror("TCPClientHandler accept");
     return;
   }
 
@@ -333,22 +348,24 @@ void UDPServer::UDPClientHandler::accept(int server_sock_fd) {
     if (debug_mode) {
       fprintf(stderr, "Max clients reached... dropping connection\n");
     }
+    close(client_sock_fd);
     return;
   }
 
   auto pid = fork();
   if (pid < 0) {
-    perror("UDPClientHandler fork");
+    perror("TCPClientHandler fork");
+    close(client_sock_fd);
     return;
   }
   if (pid == 0) {
     // child process
     if (debug_mode) {
-      fprintf(stderr, "Got new connection... creating UDPClient\n");
+      fprintf(stderr, "Got new connection... creating TCPClient\n");
     }
     close(server_sock_fd);
 
-    UDPClient* client = new UDPClient(client_addr);
+    Client* client = new Client(client_sock_fd, client_addr);
 
     if (debug_mode) {
       fprintf(stderr, "Handling connection from %s\n", client->peer_ip());
@@ -358,13 +375,15 @@ void UDPServer::UDPClientHandler::accept(int server_sock_fd) {
       fprintf(stderr, "Calling handler\n");
     }
 
-    handler(client, first_packet, len, extra_data);
+    handler(client, extra_data);
     delete client;
-    delete[] first_packet;
     exit(EXIT_SUCCESS);
   }
+  close(client_sock_fd);
   if (debug_mode) {
     fprintf(stderr, "Adding child pid: %d\n", pid);
   }
   clients.push_back(pid);
 }
+
+}  // namespace tcp

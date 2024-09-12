@@ -4,14 +4,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "tcp_server.hpp"
+#include "tcp/server.hpp"
+
+using namespace tcp;
 
 void usage(const char *progname) {
   fprintf(stderr, "Usage: %s <port>\n", progname);
   exit(EXIT_FAILURE);
 }
 
-void echo_handler(TCPClient *client, void *) {
+void echo_handler(Client *client, void *) {
   char buffer[256];
   while (true) {
     ssize_t bytes_read = client->read(buffer, sizeof(buffer));
@@ -40,6 +42,6 @@ int main(int argc, char *argv[]) {
 
   int port = atoi(argv[1]);
 
-  TCPServer server;
+  Server server;
   server.set_port(port).add_handler(echo_handler).exec();
 }

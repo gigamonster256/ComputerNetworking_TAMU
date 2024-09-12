@@ -1,15 +1,18 @@
-#include "udp_client.hpp"
+#include "client.hpp"
 
+#include <ctype.h>
 #include <errno.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
-#include <cassert>
-#include <chrono>
+namespace udp {
 
-UDPClient::UDPClient(const struct sockaddr_in6 &client_addr) {
+Client::Client(const struct sockaddr_in6 &client_addr) {
   connected_to_ephemeral_port = true;
   sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
   if (sockfd < 0) {
@@ -31,7 +34,7 @@ UDPClient::UDPClient(const struct sockaddr_in6 &client_addr) {
   }
 }
 
-UDPClient::UDPClient(const char *server, int port_no) {
+Client::Client(const char *server, int port_no) {
   fprintf(stderr, "Connecting to server %s\n", server);
   fprintf(stderr, "Port: %d\n", port_no);
   // figure out if we are using IPv4 or IPv6 based on the server address
@@ -66,14 +69,13 @@ UDPClient::UDPClient(const char *server, int port_no) {
   }
 }
 
-UDPClient::~UDPClient() {
+Client::~Client() {
   if (close(sockfd) < 0) {
     perror("UDPClient close");
   }
 }
 
-void UDPClient::connect_to_ephemeral_port(
-    const struct sockaddr_in6 &server_addr) {
+void Client::connect_to_ephemeral_port(const struct sockaddr_in6 &server_addr) {
   // connect to the server's ephemeral port
   if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) <
       0) {
@@ -87,11 +89,12 @@ void UDPClient::connect_to_ephemeral_port(
   connected_to_ephemeral_port = true;
 }
 
-ssize_t UDPClient::write(void *msgbuf, size_t maxlen) {
+ssize_t Client::write(void *msgbuf, size_t maxlen) {
   ssize_t n_written;
   if (!connected_to_ephemeral_port) {
     // send to the server's well known port
-    n_written = sendto(sockfd, msgbuf, maxlen, 0, (struct sockaddr*)&server_addr, sizeof(server_addr));
+    n_written = sendto(sockfd, msgbuf, maxlen, 0,
+                       (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (n_written < 0) {
       perror("UDPClient sendto");
     }
@@ -101,7 +104,7 @@ ssize_t UDPClient::write(void *msgbuf, size_t maxlen) {
   return n_written;
 }
 
-ssize_t UDPClient::read(void *msgbuf, size_t maxlen) {
+ssize_t Client::read(void *msgbuf, size_t maxlen) {
   ssize_t n_read;
   if (!connected_to_ephemeral_port) {
     // read from the server's ephemeral port
@@ -119,3 +122,5 @@ ssize_t UDPClient::read(void *msgbuf, size_t maxlen) {
   }
   return n_read;
 }
+
+}  // namespace udp
