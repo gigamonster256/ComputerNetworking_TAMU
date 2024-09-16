@@ -1,7 +1,7 @@
 #include "sbcp/messages.hpp"
 
-#include <cassert>
-#include <cstring>
+#include <assert.h>
+#include <string.h>
 
 namespace sbcp {
 

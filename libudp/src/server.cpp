@@ -323,8 +323,9 @@ void Server::ClientHandler::accept(int server_sock_fd) {
   struct sockaddr_in6 client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
   char* first_packet = new char[initial_packet_buffer_size];
-  ssize_t len = recvfrom(server_sock_fd, first_packet, initial_packet_buffer_size, 0,
-                         (struct sockaddr*)&client_addr, &client_addr_len);
+  ssize_t len =
+      recvfrom(server_sock_fd, first_packet, initial_packet_buffer_size, 0,
+               (struct sockaddr*)&client_addr, &client_addr_len);
   if (len < 0) {
     perror("UDPServer recvfrom");
     return;

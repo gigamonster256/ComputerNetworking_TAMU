@@ -1,11 +1,12 @@
 #include "sbcp/sbcp.hpp"
 
-#include <cassert>
-#include <cstring>
+#include <assert.h>
+#include <string.h>
+
 #include <iostream>
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace sbcp {
 
@@ -137,8 +138,8 @@ void Message::add_attribute(const attribute_t& attr) {
 void Message::add_attribute(attribute_t::type_t type, const char* value,
                             size_t length) {
   assert(type == attribute_t::type_t::USERNAME ||
-          type == attribute_t::type_t::MESSAGE ||
-          type == attribute_t::type_t::REASON);
+         type == attribute_t::type_t::MESSAGE ||
+         type == attribute_t::type_t::REASON);
   add_attribute(attribute_t(type, value, length));
 }
 
@@ -212,9 +213,7 @@ std::vector<std::string> Message::get_usernames() const {
   return usernames;
 }
 
-std::string Message::get_username() const {
-  return get_usernames().front();
-}
+std::string Message::get_username() const { return get_usernames().front(); }
 
 std::string Message::get_message() const {
   for (const auto& attr : *this) {
