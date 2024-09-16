@@ -1,3 +1,3 @@
-#include "tftp/messages.hpp"
+#include "tftp/packets.hpp"
 
 namespace tftp {}  // namespace tftp
