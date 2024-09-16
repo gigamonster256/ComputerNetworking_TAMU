@@ -1,6 +1,6 @@
-#include "client.hpp"
+#include "http/client.hpp"
 
-#include "constants.hpp"
+#include "http/constants.hpp"
 #include "tcp/client.hpp"
 
 namespace http {

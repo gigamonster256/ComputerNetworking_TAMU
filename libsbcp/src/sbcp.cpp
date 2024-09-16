@@ -1,4 +1,4 @@
-#include "sbcp.hpp"
+#include "sbcp/sbcp.hpp"
 
 #include <cassert>
 #include <cstring>

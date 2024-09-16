@@ -1,9 +1,9 @@
-#include "date.hpp"
+#include "http/date.hpp"
 
 #include <ctime>
 #include <string>
 
-#include "error.hpp"
+#include "http/error.hpp"
 
 namespace http {
 

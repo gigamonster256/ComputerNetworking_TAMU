@@ -1,16 +1,15 @@
-#ifndef _UDP_SERVER_HPP_
-#define _UDP_SERVER_HPP_
+#ifndef _TCP_SERVER_HPP_
+#define _TCP_SERVER_HPP_
 
 #include <vector>
 
-#include "client.hpp"
+#include "tcp/client.hpp"
 
-namespace udp {
+namespace tcp {
 
 typedef void* client_data_ptr_t;
 
-typedef void (*ClientHandlerFunction)(Client*, const char*, size_t,
-                                      client_data_ptr_t);
+typedef void (*ClientHandlerFunction)(Client*, client_data_ptr_t);
 typedef void (*TimeoutFunction)();
 
 class Server {
@@ -29,7 +28,6 @@ class Server {
     std::vector<ClientHandlerFunction> handlers;
     handle_mode mode;
     bool debug_mode;
-    size_t initial_packet_buffer_size;
     client_data_ptr_t extra_data;
 
     ClientHandler()
@@ -39,7 +37,6 @@ class Server {
           handlers(),
           mode(RoundRobin),
           debug_mode(false),
-          initial_packet_buffer_size(1024),
           extra_data(nullptr) {}
     ~ClientHandler();
     void set_max_clients(unsigned int max) { max_clients = max; }
@@ -48,9 +45,6 @@ class Server {
     }
     void set_mode(handle_mode mode) { this->mode = mode; }
     void debug(bool mode) { debug_mode = mode; }
-    void set_initial_packet_buffer_size(size_t size) {
-      initial_packet_buffer_size = size;
-    }
     void set_extra_data(client_data_ptr_t data) { extra_data = data; }
 
     void accept(int server_sock_fd);
@@ -73,6 +67,7 @@ class Server {
   unsigned int port_no;
   unsigned int timeout;
   unsigned int max_timeouts;
+  unsigned int backlog;
   bool debug_mode;
   TimeoutFunction timeout_handler;
 
@@ -85,6 +80,7 @@ class Server {
         port_no(-1),
         timeout(1),
         max_timeouts(0),
+        backlog(5),
         debug_mode(false),
         timeout_handler(nullptr) {}
   ~Server();
@@ -93,6 +89,7 @@ class Server {
   Server& set_port(unsigned int port_no);
   Server& set_timeout(unsigned int seconds);
   Server& set_max_timeouts(unsigned int seconds);
+  Server& set_backlog(unsigned int size);
   Server& debug(bool mode);
   Server& set_timeout_handler(TimeoutFunction handler);
 
@@ -111,6 +108,6 @@ class Server {
   void run_server();
 };
 
-}  // namespace udp
+}  // namespace tcp
 
 #endif

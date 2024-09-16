@@ -21,7 +21,7 @@ LIBHTTP = $(LIBHTTPBASE).$(LIBEXT)
 
 # libhttp dependencies
 LIBTCPDIR = ../libtcp
-LIBTCPINCLUDE = -I../include
+LIBTCPINCLUDE = -I$(LIBTCPDIR)/include
 LIBTCP = $(LIBTCPDIR)/libtcp.$(LIBEXT)
 
 .PHONY: all clean 

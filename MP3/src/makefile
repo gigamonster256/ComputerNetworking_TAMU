@@ -9,8 +9,9 @@ ifeq ($(shell hostname), ecen602)
 	CXXFLAGS = -std=c++17 -Wall -Wextra -Werror
 endif
 
-LIBS = -L../../libs -ludp
-INCLUDE = -I../../include
+LIBS = -L../../libudp -ludp
+LIBUDP = ../../libudb/libudp.a
+INCLUDE = -I../../libudp/include
 
 all: server client
 clean:
@@ -19,12 +20,12 @@ clean:
 	rm -f *.o
 	rm -rf *.dSYM
 
-client: client.cpp ../../libs/libudp.a
+client: client.cpp $(LIBUDP)
 	$(CXX) $(CXXFLAGS) -o client $(LIBS) $(INCLUDE) client.cpp
 
-server: server.cpp ../../libs/libudp.a
+server: server.cpp $(LIBUDP)
 	$(CXX) $(CXXFLAGS) -o server $(LIBS) $(INCLUDE) server.cpp
 
-../../libs/libudp.a:
-	$(MAKE) -C ../../ libs/libudp.a
+$(LIBUDP):
+	$(MAKE) -C ../../libudp MODE=static
 

@@ -11,7 +11,7 @@ endif
 
 LIBS = -L../../libtcp -ltcp
 LIBTCP = ../../libtcp/libtcp.a
-INCLUDE = -I../../include
+INCLUDE = -I../../libtcp/include
 
 all: echos echo
 

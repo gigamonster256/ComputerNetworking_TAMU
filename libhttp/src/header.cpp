@@ -1,10 +1,10 @@
-#include "header.hpp"
+#include "http/header.hpp"
 
 #include <string>
 
-#include "constants.hpp"
-#include "date.hpp"
-#include "error.hpp"
+#include "http/constants.hpp"
+#include "http/date.hpp"
+#include "http/error.hpp"
 
 namespace http {
 

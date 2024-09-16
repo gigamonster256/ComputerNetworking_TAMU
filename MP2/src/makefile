@@ -12,7 +12,7 @@ endif
 LIBS = -L../../libtcp -L../../libsbcp -ltcp -lsbcp
 LIBTCP = ../../libtcp/libtcp.a
 LIBSBCP = ../../libsbcp/libsbcp.a
-INCLUDE = -I../../include
+INCLUDE = -I../../libsbcp/include -I../../libtcp/include
 
 all: server client
 clean:

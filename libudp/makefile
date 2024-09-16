@@ -23,8 +23,8 @@ LIBUDP = $(LIBUDPBASE).$(LIBEXT)
 all: $(LIBUDP)
 
 clean:
-	rm -f libtcp.a
-	rm -f libtcp.so
+	rm -f libudp.a
+	rm -f libudp.so
 	rm -f $(LIBUDPDIR)/*.o
 
 $(LIBUDPBASE).a: $(LIBUDPOBJS)

@@ -23,8 +23,8 @@ LIBSBCP = $(LIBSBCPBASE).$(LIBEXT)
 all: $(LIBSBCP)
 
 clean:
-	rm -f libtcp.a
-	rm -f libtcp.so
+	rm -f libsbcp.a
+	rm -f libsbcp.so
 	rm -f $(LIBSBCPDIR)/*.o
 
 $(LIBSBCPBASE).a: $(LIBSBCPOBJS)
