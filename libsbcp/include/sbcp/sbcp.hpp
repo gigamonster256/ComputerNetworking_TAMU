@@ -1,9 +1,10 @@
 #ifndef _SBCP_HPP_
 #define _SBCP_HPP_
 
-#include <cassert>
-#include <cstddef>
-#include <cstdint>
+#include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include <iterator>
 #include <stdexcept>
 #include <string>
