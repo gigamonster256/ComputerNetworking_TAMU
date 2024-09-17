@@ -19,13 +19,24 @@ LIBTCPOBJS = $(LIBTCPSRCS:.cpp=.o)
 LIBTCPBASE = libtcp
 LIBTCP = $(LIBTCPBASE).$(LIBEXT)
 
-.PHONY: all clean 
+TESTDIR = test
+TESTSRCS = server.cpp
+TESTSRCS := $(addprefix $(TESTDIR)/, $(TESTSRCS))
+TESTEXECS = $(TESTSRCS:.cpp=.out)
+
+.PHONY: all clean test
 all: $(LIBTCP)
 
 clean:
 	rm -f libtcp.a
 	rm -f libtcp.so
 	rm -f $(LIBTCPDIR)/*.o
+
+test: $(TESTEXECS)
+	for test in $(TESTEXECS); do ./$$test; done
+
+$(TESTDIR)/%: $(TESTDIR)/%.cpp $(LIBTCP)
+	$(CXX) $(CXXFLAGS) $(LIBTCPINCLUDE) $(INCLUDES) -o $@ $< $(LIBTCP)
 
 $(LIBTCPBASE).a: $(LIBTCPOBJS)
 	ar rcs $@ $(LIBTCPOBJS)
