@@ -1,6 +1,5 @@
 #include "tcp/server.hpp"
 
-#include <assert.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -12,81 +11,111 @@
 
 #include <algorithm>
 
+#include "tcp/error.hpp"
+
 namespace tcp {
 
 Server::~Server() { stop(true); }
 
 Server& Server::set_port(unsigned int port_no) {
-  assert(server_pid < 0);
-  assert(port_no > 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot set port while server is running");
+  }
   this->port_no = port_no;
   return *this;
 }
 
 Server& Server::set_timeout(unsigned int timeout) {
-  assert(server_pid < 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot set timeout while server is running");
+  }
   this->timeout = timeout;
   return *this;
 }
 
 Server& Server::set_max_timeouts(unsigned int max_timeouts) {
-  assert(server_pid < 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot set max timeouts while server is running");
+  }
   this->max_timeouts = max_timeouts;
   return *this;
 }
 
 Server& Server::set_backlog(unsigned int backlog) {
-  assert(server_pid < 0);
-  assert(backlog > 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot set backlog while server is running");
+  }
   this->backlog = backlog;
   return *this;
 }
 
 Server& Server::debug(bool mode) {
-  assert(server_pid < 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot set debug mode while server is running");
+  }
   this->debug_mode = mode;
   client_handler.debug(mode);
   return *this;
 }
 
 Server& Server::set_timeout_handler(TimeoutFunction handler) {
-  assert(server_pid < 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError(
+        "Cannot set timeout handler while server is running");
+  }
   this->timeout_handler = handler;
   return *this;
 }
 
 Server& Server::add_handler(ClientHandlerFunction handler) {
-  assert(server_pid < 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot add handler while server is running");
+  }
   client_handler.add_handler(handler);
   return *this;
 }
 
 Server& Server::set_handler_mode(ClientHandler::handle_mode mode) {
-  assert(server_pid < 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot set handler mode while server is running");
+  }
   client_handler.set_mode(mode);
   return *this;
 }
 
 Server& Server::set_max_clients(unsigned int max_clients) {
-  assert(server_pid < 0);
-  assert(max_clients > 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot set max clients while server is running");
+  }
   client_handler.max_clients = max_clients;
   return *this;
 }
 
 Server& Server::add_handler_extra_data(void* data) {
-  assert(server_pid < 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot set extra data while server is running");
+  }
   client_handler.set_extra_data(data);
   return *this;
 }
 
 pid_t Server::start() {
   // verify configuration
-  assert(server_pid < 0);
-  assert(port_no > 0);
-  assert(backlog > 0);
-  assert(client_handler.max_clients > 0);
-  assert(client_handler.handlers.size() > 0);
+  if (server_pid >= 0) {
+    throw ConfigurationError("Server already running");
+  }
+  if (port_no == 0) {
+    throw ConfigurationError("Port number not set");
+  }
+  if (backlog == 0) {
+    throw ConfigurationError("Backlog not set");
+  }
+  if (client_handler.handlers.size() == 0) {
+    throw ConfigurationError("No client handlers set");
+  }
+  if (client_handler.max_clients == 0) {
+    throw ConfigurationError("Max clients not set");
+  }
 
   server_pid = fork();
 
