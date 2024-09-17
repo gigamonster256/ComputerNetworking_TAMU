@@ -82,7 +82,7 @@ class Server {
         client_handler(),
         server_pid(-1),
         timeout_count(0),
-        port_no(-1),
+        port_no(0),
         timeout(1),
         max_timeouts(0),
         debug_mode(false),
