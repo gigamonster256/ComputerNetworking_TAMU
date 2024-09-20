@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <stdexcept>
 
 #include "tcp/error.hpp"
 
@@ -362,6 +363,9 @@ void Server::ClientHandler::accept(int server_sock_fd) {
     case Random:
       handler = handlers[rand() % handlers.size()];
       break;
+    default:
+      fprintf(stderr, "Invalid mode\n");
+      throw std::runtime_error("Invalid mode");
   }
 
   struct sockaddr_in6 client_addr;

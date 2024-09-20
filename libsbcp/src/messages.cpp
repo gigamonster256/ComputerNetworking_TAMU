@@ -12,7 +12,7 @@ const message_t JOIN(const char* username, size_t length) {
 }
 
 const message_t JOIN(const char* username) {
-  return JOIN(username, std::strlen(username));
+  return JOIN(username, strlen(username));
 }
 
 const message_t JOIN(std::string username) {
@@ -26,7 +26,7 @@ const message_t SEND(const char* message, size_t length) {
 }
 
 const message_t SEND(const char* message) {
-  return SEND(message, std::strlen(message));
+  return SEND(message, strlen(message));
 }
 
 const message_t SEND(std::string message) {
@@ -42,7 +42,7 @@ const message_t FWD(const char* username, size_t username_length,
 }
 
 const message_t FWD(const char* username, const char* message) {
-  return FWD(username, std::strlen(username), message, std::strlen(message));
+  return FWD(username, strlen(username), message, strlen(message));
 }
 
 const message_t FWD(std::string username, std::string message) {
@@ -70,9 +70,7 @@ const message_t NAK(const char* reason, size_t length) {
   return msg;
 }
 
-const message_t NAK(const char* reason) {
-  return NAK(reason, std::strlen(reason));
-}
+const message_t NAK(const char* reason) { return NAK(reason, strlen(reason)); }
 
 const message_t NAK(std::string reason) {
   return NAK(reason.c_str(), reason.length());
@@ -85,7 +83,7 @@ const message_t ONLINE(const char* username, size_t length) {
 }
 
 const message_t ONLINE(const char* username) {
-  return ONLINE(username, std::strlen(username));
+  return ONLINE(username, strlen(username));
 }
 
 const message_t ONLINE(std::string username) {
@@ -99,7 +97,7 @@ const message_t OFFLINE(const char* username, size_t length) {
 }
 
 const message_t OFFLINE(const char* username) {
-  return OFFLINE(username, std::strlen(username));
+  return OFFLINE(username, strlen(username));
 }
 
 const message_t OFFLINE(std::string username) {
@@ -113,7 +111,7 @@ const message_t IDLE(const char* username, size_t length) {
 }
 
 const message_t IDLE(const char* username) {
-  return IDLE(username, std::strlen(username));
+  return IDLE(username, strlen(username));
 }
 
 const message_t IDLE(std::string username) {

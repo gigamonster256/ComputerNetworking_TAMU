@@ -31,13 +31,13 @@ Message::Attribute::Attribute(type_t type, const char* value)
     : type(type), length(0), payload() {
   switch (type) {
     case type_t::USERNAME:
-      set_username(value, std::strlen(value));
+      set_username(value, strlen(value));
       break;
     case type_t::MESSAGE:
-      set_message(value, std::strlen(value));
+      set_message(value, strlen(value));
       break;
     case type_t::REASON:
-      set_reason(value, std::strlen(value));
+      set_reason(value, strlen(value));
       break;
     default:
       throw MessageException("Invalid attribute type");
