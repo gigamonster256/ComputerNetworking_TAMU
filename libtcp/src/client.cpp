@@ -80,6 +80,7 @@ Client::Client(const char *server, int port_no) {
       snprintf(peer_ip_addr, INET6_ADDRSTRLEN, "::ffff:%s", server);
     } else {
       strncpy(peer_ip_addr, server, INET6_ADDRSTRLEN);
+      peer_ip_addr[INET6_ADDRSTRLEN - 1] = '\0';
     }
   }
 

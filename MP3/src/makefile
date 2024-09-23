@@ -1,13 +1,5 @@
 CXX ?= g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -fsanitize=address -fno-omit-frame-pointer -g
-
-# turn off asan if running on test server
-# for some reason the program crashes some times when loading the
-# libasan library... possibly because the container is unprivileged?
-# it could also be that my code is just bad (something in udpServer)?
-ifeq ($(shell hostname), ecen602)
-	CXXFLAGS = -std=c++17 -Wall -Wextra -Werror
-endif
+CXXFLAGS = -std=c++17 -Wall -Wextra -Werror
 
 LIBS = -L../../libudp -ludp
 LIBUDP = ../../libudb/libudp.a

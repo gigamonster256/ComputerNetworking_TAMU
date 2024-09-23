@@ -131,8 +131,7 @@ void client_handler(tcp::Client *client, void *extra_data) {
           std::cerr << "Handler bootstrapping for " << username << std::endl;
           struct bootstrap_message bootstrap(
               {pid, (uint8_t)username.size(), {}});
-          strncpy(bootstrap.username, username.c_str(),
-                  SBCP_MAX_USERNAME_LENGTH);
+          strcpy(bootstrap.username, username.c_str());
           write(bootstrap_fd, (void *)&bootstrap, sizeof(bootstrap));
 
           std::cerr << "Handler sent bootstrap message to main thread"

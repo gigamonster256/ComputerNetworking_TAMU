@@ -116,9 +116,9 @@ typedef class Message {
 
  public:
   explicit constexpr Message() noexcept
-      : header({SBCP_VERSION, type_t::JOIN, 0}), payload() {}
+      : header(header_t{SBCP_VERSION, type_t::JOIN, 0}), payload() {}
   explicit constexpr Message(type_t type) noexcept
-      : header({SBCP_VERSION, type, 0}), payload() {}
+      : header(header_t{SBCP_VERSION, type, 0}), payload() {}
   void validate() const;
   void validate_version() const;
   version_t constexpr get_version() const noexcept { return header.version; }

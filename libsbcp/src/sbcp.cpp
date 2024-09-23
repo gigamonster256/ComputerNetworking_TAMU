@@ -84,7 +84,7 @@ void Message::Attribute::set_username(const char* value,
   if (this->length > SBCP_MAX_USERNAME_LENGTH) {
     this->length = SBCP_MAX_USERNAME_LENGTH;
   }
-  std::memcpy(payload.username, value, this->length);
+  memcpy(payload.username, value, this->length);
 }
 
 void Message::Attribute::set_message(const char* value,
@@ -94,7 +94,7 @@ void Message::Attribute::set_message(const char* value,
   if (this->length > SBCP_MAX_MESSAGE_LENGTH) {
     this->length = SBCP_MAX_MESSAGE_LENGTH;
   }
-  std::memcpy(payload.message, value, this->length);
+  memcpy(payload.message, value, this->length);
 }
 
 void Message::Attribute::set_reason(const char* value, size_t length) noexcept {
@@ -103,7 +103,7 @@ void Message::Attribute::set_reason(const char* value, size_t length) noexcept {
   if (this->length > SBCP_MAX_REASON_LENGTH) {
     this->length = SBCP_MAX_REASON_LENGTH;
   }
-  std::memcpy(payload.reason, value, this->length);
+  memcpy(payload.reason, value, this->length);
 }
 
 void Message::Attribute::set_client_count(
@@ -131,7 +131,7 @@ void Message::add_attribute(const attribute_t& attr) {
   if (header.length + attr.size() > SBCP_MAX_PAYLOAD_LENGTH) {
     throw MessageException("Payload length exceeds maximum length");
   }
-  std::memcpy(payload + header.length, &attr, attr.size());
+  memcpy(payload + header.length, &attr, attr.size());
   header.length += attr.size();
 }
 
