@@ -64,6 +64,7 @@ class Server {
   unsigned int timeout_count;
 
   // configuration data
+  char server_ip_addr[INET6_ADDRSTRLEN];
   unsigned int port_no;
   unsigned int timeout;
   unsigned int max_timeouts;
@@ -87,6 +88,7 @@ class Server {
 
   // server configuration
   Server& set_port(unsigned int port_no);
+  Server& set_ip_addr(const char* ip_addr);
   Server& set_timeout(unsigned int seconds);
   Server& set_max_timeouts(unsigned int seconds);
   Server& set_backlog(unsigned int size);

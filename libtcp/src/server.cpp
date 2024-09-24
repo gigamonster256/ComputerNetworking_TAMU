@@ -26,6 +26,16 @@ Server& Server::set_port(unsigned int port_no) {
   return *this;
 }
 
+Server& Server::set_ip_addr(const char* ip_addr) {
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot set IP address while server is running");
+  }
+  // below line throws warning if not assigning last character as '\0'
+  strncpy(this->server_ip_addr, ip_addr, INET6_ADDRSTRLEN);
+  this->server_ip_addr[INET6_ADDRSTRLEN - 1] = '\0';
+  return *this;
+}
+
 Server& Server::set_timeout(unsigned int timeout) {
   if (server_pid >= 0) {
     throw ConfigurationError("Cannot set timeout while server is running");
@@ -163,7 +173,13 @@ void Server::run_server() {
   memset(&server_addr, 0, sizeof(server_addr));
   server_addr.sin6_family = AF_INET6;
   server_addr.sin6_port = htons(port_no);
-  server_addr.sin6_addr = in6addr_any;
+  // server_addr.sin6_addr = in6addr_any;
+  if (*server_ip_addr != '\0') {  // if server IP address is provided
+    if (inet_pton(AF_INET6, server_ip_addr, &server_addr.sin6_addr) < 0) {
+      perror("TCPServer inet_pton");
+      exit(EXIT_FAILURE);
+    }
+  }
 
   if (bind(server_sock_fd, (struct sockaddr*)&server_addr,
            sizeof(server_addr)) < 0) {

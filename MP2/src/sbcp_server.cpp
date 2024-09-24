@@ -253,7 +253,7 @@ int main(int argc, char *argv[]) {
   const char *ip = argv[1];
   unsigned int port = atoi(argv[2]);
   unsigned int max_clients = atoi(argv[3]);
-  (void)ip;
+  //(void)ip;
 
   // clients --> server pipe
   // used for notifying server of new client
@@ -272,9 +272,10 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
   fprintf(stderr, "Temp dir: %s\n", temp_dir);
-
+  std::cout << "IP Address provided:" << ip << std::endl;
   tcp::Server server;
   auto pid = server.set_port(port)
+                 .set_ip_addr(ip)
                  .add_handler(client_handler)
                  .set_max_clients(max_clients)
                  .set_timeout_handler(timeout_handler)
