@@ -115,8 +115,29 @@ void Message::Attribute::set_client_count(
 
 void Message::validate() const {
   validate_version();
-  if (header.length > SBCP_MAX_PAYLOAD_LENGTH) {
-    throw MessageException("Payload length exceeds maximum length");
+  switch (header.type) {
+    case message_type_t::JOIN:
+      // can only have one username attribute (4 byte header + 16 byte max username)
+      if (header.length > 4 + 16) {
+        throw MessageException("JOIN message should not have payload");
+      }
+      break;
+    case message_type_t::SEND:
+      // TODO finish these
+    case message_type_t::FWD:
+    case message_type_t::IDLE:
+    case message_type_t::ACK:
+    case message_type_t::NAK:
+    case message_type_t::ONLINE:
+      // can have many username attributes
+      if (header.length > SBCP_MAX_PAYLOAD_LENGTH) {
+        throw MessageException("Message should have payload");
+      }
+      break;
+    case message_type_t::OFFLINE:
+      break;
+    default:
+      throw MessageException("Invalid message type");
   }
 }
 

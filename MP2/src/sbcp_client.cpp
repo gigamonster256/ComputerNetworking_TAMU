@@ -65,9 +65,14 @@ int main(int argc, char *argv[]) {
   clock_gettime(CLOCK_MONOTONIC, &spec);
 
   bool idle = false;
+  bool displayed_prompt = false;
 
   // main loop
   while (true) {
+    if (!displayed_prompt) {
+      std::cout << "> " << std::flush;
+      displayed_prompt = true;
+    }
     // read from client or stdin
     fd_set readfds;
     FD_ZERO(&readfds);
@@ -112,6 +117,12 @@ int main(int argc, char *argv[]) {
     if (FD_ISSET(client.get_fd(), &readfds)) {
       // read from server
       client.readn((void *)msg.data(), sizeof(message_t::header_t));
+      try {
+        msg.validate();
+      } catch (const MessageException &e) {
+        std::cerr << e.what() << std::endl;
+        continue;
+      }
       client.readn((void *)(msg.data() + sizeof(message_t::header_t)),
                    msg.get_length());
       if (msg.get_type() == message_t::Type::FWD) {
@@ -140,5 +151,6 @@ int main(int argc, char *argv[]) {
         const message_t msg = SEND(message);
         client.writen((void *)msg.data(), msg.size());
       }
+      displayed_prompt = false;
   }
 }

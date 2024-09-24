@@ -34,7 +34,12 @@ ssize_t read_message(int fd, message_t *message) {
     return 0;
   }
   assert(r == sizeof(message_t::header_t));
-  message->validate();
+  try {
+    message->validate();
+  } catch (MessageException &e) {
+    std::cerr << "Invalid message: " << e.what() << std::endl;
+    return -1;
+  }
   auto r2 = read(fd, (void *)(message->data() + sizeof(message_t::header_t)),
                  message->get_length());
   assert(r2 == message->get_length());
@@ -199,6 +204,10 @@ void client_handler(tcp::Client *client, void *extra_data) {
                      "to talk anymore"
                   << std::endl;
         break;
+      }
+      if (r < 0) {
+        std::cerr << "Handler read error from main thread" << std::endl;
+        continue;
       }
       std::cerr << "Handler received message from main thread" << std::endl;
       std::cerr << message << std::endl;

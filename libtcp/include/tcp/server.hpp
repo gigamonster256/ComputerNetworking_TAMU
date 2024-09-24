@@ -78,6 +78,7 @@ class Server {
         client_handler(),
         server_pid(-1),
         timeout_count(0),
+        server_ip_addr(""),
         port_no(0),
         timeout(1),
         max_timeouts(0),

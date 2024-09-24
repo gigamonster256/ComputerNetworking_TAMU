@@ -30,9 +30,20 @@ Server& Server::set_ip_addr(const char* ip_addr) {
   if (server_pid >= 0) {
     throw ConfigurationError("Cannot set IP address while server is running");
   }
-  // below line throws warning if not assigning last character as '\0'
-  strncpy(this->server_ip_addr, ip_addr, INET6_ADDRSTRLEN);
-  this->server_ip_addr[INET6_ADDRSTRLEN - 1] = '\0';
+  // copy the IP address (map to IPv6 if needed)
+  bool is_ipv6 = false;
+  for (auto p = ip_addr; *p; p++) {
+    if (*p == ':') {
+      is_ipv6 = true;
+      break;
+    }
+  }
+  if (!is_ipv6) {
+    snprintf(server_ip_addr, INET6_ADDRSTRLEN, "::ffff:%s", ip_addr);
+  } else {
+    strncpy(server_ip_addr, ip_addr, INET6_ADDRSTRLEN);
+    server_ip_addr[INET6_ADDRSTRLEN - 1] = '\0';
+  }
   return *this;
 }
 
@@ -173,10 +184,16 @@ void Server::run_server() {
   memset(&server_addr, 0, sizeof(server_addr));
   server_addr.sin6_family = AF_INET6;
   server_addr.sin6_port = htons(port_no);
-  // server_addr.sin6_addr = in6addr_any;
-  if (*server_ip_addr != '\0') {  // if server IP address is provided
-    if (inet_pton(AF_INET6, server_ip_addr, &server_addr.sin6_addr) < 0) {
-      perror("TCPServer inet_pton");
+  server_addr.sin6_addr = in6addr_any;  // default to any address
+  if (*server_ip_addr != '\0') {        // if server IP address is provided
+    int success = inet_pton(AF_INET6, server_ip_addr, &server_addr.sin6_addr);
+    if (success <= 0) {
+      if (success == 0) {
+        fprintf(stderr, "Invalid IP Address: %s\n", server_ip_addr);
+      } else {
+        perror("TCPServer inet_pton");
+      }
+      close(server_sock_fd);
       exit(EXIT_FAILURE);
     }
   }
