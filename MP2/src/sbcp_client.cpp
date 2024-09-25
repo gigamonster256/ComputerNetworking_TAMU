@@ -151,6 +151,6 @@ int main(int argc, char *argv[]) {
         const message_t msg = SEND(message);
         client.writen((void *)msg.data(), msg.size());
       }
-      displayed_prompt = false;
+    displayed_prompt = false;
   }
 }

@@ -117,24 +117,54 @@ void Message::validate() const {
   validate_version();
   switch (header.type) {
     case message_type_t::JOIN:
-      // can only have one username attribute (4 byte header + 16 byte max username)
+      // can only have one username attribute (4 byte header + 16 byte max
+      // username)
       if (header.length > 4 + 16) {
         throw MessageException("JOIN message should not have payload");
       }
       break;
     case message_type_t::SEND:
-      // TODO finish these
+      // can only have one message attribute (512 bytes)
+      if (header.length > 512) {
+        throw MessageException("SEND message payload overflow");
+      }
+      break;
     case message_type_t::FWD:
+      // can only have one username and one message attribute (16 bytes + 512
+      // bytes)
+      if (header.length > 16 + 512) {
+        throw MessageException("FWD message should have username and message");
+      }
+      break;
     case message_type_t::IDLE:
+      // can only have one username attribute (16 bytes)
+      if (header.length > 16) {
+        throw MessageException("IDLE message should have only username");
+      }
+      break;
     case message_type_t::ACK:
+      // can only have many username attributes and clinet count
+      if (header.length > SBCP_MAX_PAYLOAD_LENGTH) {
+        throw MessageException("ACK message size overflow");
+      }
+      break;
     case message_type_t::NAK:
+      // can only have one reason attribute (32 bytes)
+      if (header.length > 32) {
+        throw MessageException("NAK message should have only reason attribute");
+      }
+      break;
     case message_type_t::ONLINE:
       // can have many username attributes
       if (header.length > SBCP_MAX_PAYLOAD_LENGTH) {
-        throw MessageException("Message should have payload");
+        throw MessageException("ONLINE message size overflow");
       }
       break;
     case message_type_t::OFFLINE:
+      // can have many username attributes
+      if (header.length > SBCP_MAX_PAYLOAD_LENGTH) {
+        throw MessageException("OFFLINE message size overflow");
+      }
       break;
     default:
       throw MessageException("Invalid message type");
