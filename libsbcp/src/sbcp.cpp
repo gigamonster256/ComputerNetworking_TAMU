@@ -115,31 +115,32 @@ void Message::Attribute::set_client_count(
 
 void Message::validate() const {
   validate_version();
+  constexpr size_t attribute_header_size =
+      sizeof(Attribute::type_t) + sizeof(Attribute::length_t);
   switch (header.type) {
     case message_type_t::JOIN:
-      // can only have one username attribute (4 byte header + 16 byte max
-      // username)
-      if (header.length > 4 + 16) {
+      // can only have one username attribute
+      if (header.length > attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
         throw MessageException("JOIN message should not have payload");
       }
       break;
     case message_type_t::SEND:
-      // can only have one message attribute (4 byte header + 512 bytes message)
-      if (header.length > 4 + 512) {
+      // can only have one message attribute
+      if (header.length > attribute_header_size + SBCP_MAX_MESSAGE_LENGTH) {
         throw MessageException("SEND message payload overflow");
       }
       break;
     case message_type_t::FWD:
-      // can only have one username and one message attribute (4 byte header +
-      // 16 bytes username + 512 bytes message)
-      if (header.length > 4 + 16 + 512) {
+      // can only have one username and one message attribute
+      if (header.length > 2 * (attribute_header_size) +
+                              SBCP_MAX_USERNAME_LENGTH +
+                              SBCP_MAX_MESSAGE_LENGTH) {
         throw MessageException("FWD message should have username and message");
       }
       break;
     case message_type_t::IDLE:
-      // can only have one username attribute (4 byte header + 16 bytes
-      // username)
-      if (header.length > 4 + 16) {
+      // can only have one username attribute
+      if (header.length > attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
         throw MessageException("IDLE message should have only username");
       }
       break;
@@ -150,8 +151,8 @@ void Message::validate() const {
       }
       break;
     case message_type_t::NAK:
-      // can only have one reason attribute (4 byte header + 32 bytes reason)
-      if (header.length > 4 + 32) {
+      // can only have one reason attribute
+      if (header.length > attribute_header_size + SBCP_MAX_REASON_LENGTH) {
         throw MessageException("NAK message should have only reason attribute");
       }
       break;
