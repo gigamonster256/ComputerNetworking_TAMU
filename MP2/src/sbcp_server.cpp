@@ -262,6 +262,7 @@ int main(int argc, char *argv[]) {
   const char *ip = argv[1];
   unsigned int port = atoi(argv[2]);
   unsigned int max_clients = atoi(argv[3]);
+  unsigned int num_extra_clients = 2;
   //(void)ip;
 
   // clients --> server pipe
@@ -286,7 +287,7 @@ int main(int argc, char *argv[]) {
   auto pid = server.set_port(port)
                  .set_ip_addr(ip)
                  .add_handler(client_handler)
-                 .set_max_clients(max_clients)
+                 .set_max_clients(max_clients + num_extra_clients)
                  .set_timeout_handler(timeout_handler)
                  // give write end of pipe to clients
                  .add_handler_extra_data((void *)pipefd)
@@ -358,6 +359,17 @@ int main(int argc, char *argv[]) {
         std::cerr << "Username " << username << " already exists" << std::endl;
         // send nak message to handler thread
         message_t nak = NAK("Username already exists");
+        write(main_fd, nak.data(), nak.size());
+        close(handler_fd);
+        close(main_fd);
+        continue;
+      }
+
+      // make sure max_clients limit is not crossed
+      if (online_users.size() == max_clients) {
+        std::cerr << "Maximum connected clients limit reached";
+        // send NAK message to the handler thread with reason
+        message_t nak = NAK("Maximum connected clients limit reached");
         write(main_fd, nak.data(), nak.size());
         close(handler_fd);
         close(main_fd);
