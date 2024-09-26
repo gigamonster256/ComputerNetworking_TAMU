@@ -34,24 +34,24 @@ class Packet {
   static const char* mode_to_string(Mode mode);
 
   enum class Opcode : uint16_t {
-    RRQ = 1,    // Read Request (RRQ)
-    WRQ = 2,    // Write Request (WRQ)
-    DATA = 3,   // Data (DATA)
-    ACK = 4,    // Acknowledgment (ACK)
-    ERROR = 5,  // Error (ERROR)
+    RRQ = htons(1),    // Read Request (RRQ)
+    WRQ = htons(2),    // Write Request (WRQ)
+    DATA = htons(3),   // Data (DATA)
+    ACK = htons(4),    // Acknowledgment (ACK)
+    ERROR = htons(5),  // Error (ERROR)
   };
   static_assert(sizeof(Opcode) == 2, "Opcode must be 2 bytes");
   static const char* opcode_to_string(Opcode opcode);
 
   enum class ErrorCode : uint16_t {
-    NOT_DEFINED = 0,          // Not defined, see error message (if any).
-    FILE_NOT_FOUND = 1,       // File not found.
-    ACCESS_VIOLATION = 2,     // Access violation.
-    DISK_FULL = 3,            // Disk full or allocation exceeded.
-    ILLEGAL_OPERATION = 4,    // Illegal TFTP operation.
-    UNKNOWN_TRANSFER_ID = 5,  // Unknown transfer ID.
-    FILE_ALREADY_EXISTS = 6,  // File already exists.
-    NO_SUCH_USER = 7,         // No such user.
+    NOT_DEFINED = htons(0),          // Not defined, see error message (if any).
+    FILE_NOT_FOUND = htons(1),       // File not found.
+    ACCESS_VIOLATION = htons(2),     // Access violation.
+    DISK_FULL = htons(3),            // Disk full or allocation exceeded.
+    ILLEGAL_OPERATION = htons(4),    // Illegal TFTP operation.
+    UNKNOWN_TRANSFER_ID = htons(5),  // Unknown transfer ID.
+    FILE_ALREADY_EXISTS = htons(6),  // File already exists.
+    NO_SUCH_USER = htons(7),         // No such user.
   };
   static_assert(sizeof(ErrorCode) == 2, "ErrorCode must be 2 bytes");
   static const char* error_code_to_string(ErrorCode error_code);
