@@ -124,33 +124,34 @@ void Message::validate() const {
       }
       break;
     case message_type_t::SEND:
-      // can only have one message attribute (512 bytes)
-      if (header.length > 512) {
+      // can only have one message attribute (4 byte header + 512 bytes message)
+      if (header.length > 4 + 512) {
         throw MessageException("SEND message payload overflow");
       }
       break;
     case message_type_t::FWD:
-      // can only have one username and one message attribute (16 bytes + 512
-      // bytes)
-      if (header.length > 16 + 512) {
+      // can only have one username and one message attribute (4 byte header +
+      // 16 bytes username + 512 bytes message)
+      if (header.length > 4 + 16 + 512) {
         throw MessageException("FWD message should have username and message");
       }
       break;
     case message_type_t::IDLE:
-      // can only have one username attribute (16 bytes)
-      if (header.length > 16) {
+      // can only have one username attribute (4 byte header + 16 bytes
+      // username)
+      if (header.length > 4 + 16) {
         throw MessageException("IDLE message should have only username");
       }
       break;
     case message_type_t::ACK:
-      // can only have many username attributes and clinet count
+      // can have many username attributes and client count
       if (header.length > SBCP_MAX_PAYLOAD_LENGTH) {
         throw MessageException("ACK message size overflow");
       }
       break;
     case message_type_t::NAK:
-      // can only have one reason attribute (32 bytes)
-      if (header.length > 32) {
+      // can only have one reason attribute (4 byte header + 32 bytes reason)
+      if (header.length > 4 + 32) {
         throw MessageException("NAK message should have only reason attribute");
       }
       break;
