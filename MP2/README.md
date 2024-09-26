@@ -12,3 +12,25 @@ based on TCP server and client implementation from MP1. Extended with a few extr
 ## Main programs
 - sbcp_client: sbcp client implementation
 - sbcp_server: sbcp server implementation
+
+![Architecture image](./mp2_ecen602.png)
+
+## Usage
+To run the project, use the following commands:
+1. Compile all the files using the makefile to get the server and client binaries **server** and **client** respectively.
+```bash
+make
+```
+2. Open a terminal and run the TCP server on a port number.
+```bash
+./server <ip address> <port number> <max clients>
+```
+3. Open a new terminal and run the TCP client on the same port number. Provide an IPv4 or IPv6 address as well.
+```bash
+./client <username> <IP Address> <port number>
+```
+4. Repeat step 3 in order to create new clients and connect to the server.
+
+## Contribution
+- Caleb: Architecture and code for the SBCP server and client libraries and main files.
+- Rishabh: Improvements to the code for SBCP server and client libraries and test cases.
