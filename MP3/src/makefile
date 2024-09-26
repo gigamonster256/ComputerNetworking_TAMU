@@ -1,9 +1,9 @@
 CXX ?= g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -Werror
 
-LIBS = -L../../libudp -ludp
-LIBUDP = ../../libudb/libudp.a
-INCLUDE = -I../../libudp/include
+LIBUDP = ../../libudp/libudp.a
+LIBTFTP = ../../libtftp/libtftp.a
+INCLUDE = -I../../libudp/include -I../../libtftp/include
 
 all: server client
 clean:
@@ -12,12 +12,14 @@ clean:
 	rm -f *.o
 	rm -rf *.dSYM
 
-client: client.cpp $(LIBUDP)
-	$(CXX) $(CXXFLAGS) -o client $(LIBS) $(INCLUDE) client.cpp
+client: client.cpp $(LIBUDP) $(LIBTFTP)
+	$(CXX) $(CXXFLAGS) -o client $(INCLUDE) client.cpp $(LIBTFTP) $(LIBUDP)
 
-server: server.cpp $(LIBUDP)
-	$(CXX) $(CXXFLAGS) -o server $(LIBS) $(INCLUDE) server.cpp
+server: server.cpp $(LIBUDP) $(LIBTFTP)
+	$(CXX) $(CXXFLAGS) -o server $(INCLUDE) server.cpp $(LIBTFTP) $(LIBUDP)
 
 $(LIBUDP):
 	$(MAKE) -C ../../libudp MODE=static
 
+$(LIBTFTP):
+	$(MAKE) -C ../../libtftp MODE=static

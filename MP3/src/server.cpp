@@ -1,8 +1,15 @@
 #include "udp/server.hpp"
 
+#include "tftp/packets.hpp"
+
 #include <stdio.h>
 
+#include <iostream>
+
 using namespace udp;
+using namespace tftp;
+
+using ErrorCode = Packet::ErrorCode;
 
 int main() {
   Server server;
