@@ -13,7 +13,7 @@ endif
 # libTFTP
 LIBTFTPDIR = src
 LIBTFTPINCLUDE = -Iinclude
-LIBTFTPSRCS = packets.cpp tftp.cpp
+LIBTFTPSRCS = packets.cpp tftp.cpp error.cpp
 LIBTFTPSRCS := $(addprefix $(LIBTFTPDIR)/, $(LIBTFTPSRCS))
 LIBTFTPOBJS = $(LIBTFTPSRCS:.cpp=.o)
 LIBTFTPBASE = libtftp

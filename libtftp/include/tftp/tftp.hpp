@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <ostream>
+
 #define TFTP_PORT 69
 
 #define NETASCII_MODE "netascii"
@@ -24,6 +26,13 @@ namespace tftp {
 
 class Packet {
  public:
+  enum class Mode {
+    NETASCII,
+    OCTET,
+  };
+  static Mode mode_from_string(const char* mode_str);
+  static const char* mode_to_string(Mode mode);
+
   enum class Opcode : uint16_t {
     RRQ = 1,    // Read Request (RRQ)
     WRQ = 2,    // Write Request (WRQ)
@@ -32,6 +41,7 @@ class Packet {
     ERROR = 5,  // Error (ERROR)
   };
   static_assert(sizeof(Opcode) == 2, "Opcode must be 2 bytes");
+  static const char* opcode_to_string(Opcode opcode);
 
   enum class ErrorCode : uint16_t {
     NOT_DEFINED = 0,          // Not defined, see error message (if any).
@@ -44,21 +54,23 @@ class Packet {
     NO_SUCH_USER = 7,         // No such user.
   };
   static_assert(sizeof(ErrorCode) == 2, "ErrorCode must be 2 bytes");
+  static const char* error_code_to_string(ErrorCode error_code);
 
   typedef uint16_t block_num;
 
  private:
   struct RQ {
-    char filename[MAX_FILENAME_LEN];
-    char filename_term;  // null terminator
-    char mode[MAX_MODE_LEN];
-    char mode_term;  // null terminator
+    char payload[MAX_FILENAME_LEN + MAX_MODE_LEN + 2];  // 2 bytes as null terms
+    const char* filename() const;
+    const char* mode() const;
+    size_t size() const;
   };
   static_assert(sizeof(RQ) == 138, "RQ struct must be 138 bytes");
 
   struct DATA {
     uint16_t block;
     char data[MAX_DATA_LEN];
+    size_t size() const;
   };
   static_assert(sizeof(DATA) == 514, "DATA struct must be 514 bytes");
 
@@ -69,9 +81,11 @@ class Packet {
 
   struct ERROR {
     ErrorCode error_code;
-    char error_message[MAX_ERROR_MESSAGE_LEN];
-    char error_message_term;  // null terminator
+    char error_message[MAX_ERROR_MESSAGE_LEN + 1];  // 1 byte for null term
+    size_t size() const;
   };
+  // ERROR is 2 byte aligned due to alignment of ErrorCode
+  // therefore total size is +1 for padding
   static_assert(sizeof(ERROR) == 132, "ERROR struct must be 132 bytes");
 
  public:
@@ -82,8 +96,11 @@ class Packet {
     ACK ack;
     ERROR error;
   } payload;
+  size_t size() const;
+  friend std::ostream& operator<<(std::ostream& os, const Packet& packet);
 };
-static_assert(sizeof(Packet) == 516, "Packet struct must be 516 bytes");
+static_assert(sizeof(Packet) == MAX_PACKET_LEN,
+              "Packet struct must be 516 bytes");
 
 }  // namespace tftp
 
