@@ -313,7 +313,7 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
   fprintf(stderr, "Temp dir: %s\n", temp_dir);
-  std::cout << "IP Address provided:" << ip << std::endl;
+  std::cout << "IP Address provided: " << ip << std::endl;
   tcp::Server server;
   auto pid = server.set_port(port)
                  .set_ip_addr(ip)
