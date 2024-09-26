@@ -1,0 +1,19 @@
+team_id=9
+
+# clean all files
+make -C .. clean
+
+mkdir -p mp2_$team_id
+rm -rf mp2_$team_id/*
+
+LIBS="../libtcp ../libsbcp"
+
+cp -r ./test_cases_report_9.pdf src README.md $LIBS mp2_$team_id/
+
+# go through src/makefile and change ../../libtcp to ../libtcp and ../../libsbcp to ../libsbcp
+sed -i 's/..\/..\/libtcp/..\/libtcp/g' mp2_$team_id/src/makefile
+sed -i 's/..\/..\/libsbcp/..\/libsbcp/g' mp2_$team_id/src/makefile
+
+zip -r mp2_$team_id.zip mp2_$team_id
+
+rm -rf mp2_$team_id
