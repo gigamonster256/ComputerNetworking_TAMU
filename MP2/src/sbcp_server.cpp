@@ -369,7 +369,7 @@ int main(int argc, char *argv[]) {
       if (online_users.size() == max_clients) {
         std::cerr << "Maximum connected clients limit reached";
         // send NAK message to the handler thread with reason
-        message_t nak = NAK("Maximum connected clients limit reached");
+        message_t nak = NAK("Maximum clients limit");
         write(main_fd, nak.data(), nak.size());
         close(handler_fd);
         close(main_fd);
