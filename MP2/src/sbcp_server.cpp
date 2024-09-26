@@ -94,7 +94,7 @@ void client_handler(tcp::Client *client, void *extra_data) {
       if (errno == EINTR) {
         continue;
       }
-      exit(EXIT_FAILURE);
+      break;
     }
     if (ready == 0) {
       continue;
@@ -119,14 +119,14 @@ void client_handler(tcp::Client *client, void *extra_data) {
           auto main_fifo = main_fifo_name(pid);
           if (mkfifo(main_fifo.c_str(), 0666) < 0) {
             perror("Handler mkfifo main");
-            exit(EXIT_FAILURE);
+            return;
           }
 
           auto handler_fifo = handler_fifo_name(pid);
           if (mkfifo(handler_fifo.c_str(), 0666) < 0) {
             perror("Handler mkfifo handler");
             unlink(handler_fifo.c_str());
-            exit(EXIT_FAILURE);
+            return;
           }
 
           fifos_created = true;
@@ -137,7 +137,16 @@ void client_handler(tcp::Client *client, void *extra_data) {
           struct bootstrap_message bootstrap(
               {pid, (uint8_t)username.size(), {}});
           strcpy(bootstrap.username, username.c_str());
-          write(bootstrap_fd, (void *)&bootstrap, sizeof(bootstrap));
+          ssize_t r = write(bootstrap_fd, (void *)&bootstrap, sizeof(bootstrap));
+          if (r < 0) {
+            perror("Handler write bootstrap");
+            return;
+          }
+          if ((size_t)r != sizeof(bootstrap)) {
+            std::cerr << "Handler wrote " << r << " bytes, expected "
+                      << sizeof(bootstrap) << std::endl;
+            return;
+          }
 
           std::cerr << "Handler sent bootstrap message to main thread"
                     << std::endl;
@@ -150,23 +159,26 @@ void client_handler(tcp::Client *client, void *extra_data) {
             perror("Handler open main");
             unlink(main_fifo.c_str());
             unlink(handler_fifo.c_str());
-            exit(EXIT_FAILURE);
+            return;
           }
 
           handler_fd = open(handler_fifo.c_str(), O_WRONLY);
           if (handler_fd < 0) {
             perror("Handler open handler");
+            close(main_fd);
             unlink(main_fifo.c_str());
             unlink(handler_fifo.c_str());
-            exit(EXIT_FAILURE);
+            return;
           }
 
           // close write end of pipe
           if (close(bootstrap_fd) < 0) {
             perror("Handler close bootstrap");
+            close(main_fd);
+            close(handler_fd);
             unlink(main_fifo.c_str());
             unlink(handler_fifo.c_str());
-            exit(EXIT_FAILURE);
+            return;
           }
 
           break;
@@ -174,21 +186,26 @@ void client_handler(tcp::Client *client, void *extra_data) {
         // forward message to main thread
         case message_type_t::SEND:
         case message_type_t::IDLE: {
-          assert(fifos_created);
+          if (!fifos_created) {
+            std::cerr << "Handler not bootstrapped yet" << std::endl;
+            break;
+          }
           std::cerr << "Handler forwarding message to main thread" << std::endl;
           auto r = write(handler_fd, message.data(), message.size());
           if (r < 0) {
             perror("Handler write to main");
-            exit(EXIT_FAILURE);
+            continue;
           }
-          assert((size_t)r == message.size());
+          if ((size_t)r != message.size()) {
+            std::cerr << "Handler wrote " << r << " bytes, expected "
+                      << message.size() << std::endl;
+          }
           break;
         }
         default: {
           // other message types
           std::cerr << "Should not get message type: " << message.get_type()
                     << " from client" << std::endl;
-          assert(false);
           break;
         }
       }
@@ -241,7 +258,14 @@ void timeout_handler() {
 
 void write_all(std::map<std::string, int> &fifos, const message_t &message) {
   for (auto &pair : fifos) {
-    write(pair.second, message.data(), message.size());
+    ssize_t r = write(pair.second, message.data(), message.size());
+    if (r < 0) {
+      perror("write_all");
+    }
+    if ((size_t)r != message.size()) {
+      std::cerr << "write_all wrote " << r << " bytes, expected "
+                << message.size() << std::endl;
+    }
   }
 }
 
@@ -249,7 +273,14 @@ void write_all_except(std::map<std::string, int> &fifos,
                       const message_t &message, const std::string &username) {
   for (auto &pair : fifos) {
     if (pair.first != username) {
-      write(pair.second, message.data(), message.size());
+      ssize_t r = write(pair.second, message.data(), message.size());
+      if (r < 0) {
+        perror("write_all_except");
+      }
+      if ((size_t)r != message.size()) {
+        std::cerr << "write_all_except wrote " << r << " bytes, expected "
+                  << message.size() << std::endl;
+      }
     }
   }
 }
@@ -359,7 +390,14 @@ int main(int argc, char *argv[]) {
         std::cerr << "Username " << username << " already exists" << std::endl;
         // send nak message to handler thread
         message_t nak = NAK("Username already exists");
-        write(main_fd, nak.data(), nak.size());
+        ssize_t r = write(main_fd, nak.data(), nak.size());
+        if (r < 0) {
+          perror("write");
+        }
+        if ((size_t)r != nak.size()) {
+          std::cerr << "Main wrote " << r << " bytes, expected " << nak.size()
+                    << std::endl;
+        }
         close(handler_fd);
         close(main_fd);
         continue;
@@ -370,7 +408,14 @@ int main(int argc, char *argv[]) {
         std::cerr << "Maximum connected clients limit reached";
         // send NAK message to the handler thread with reason
         message_t nak = NAK("Maximum clients limit");
-        write(main_fd, nak.data(), nak.size());
+        ssize_t r = write(main_fd, nak.data(), nak.size());
+        if (r < 0) {
+          perror("write");
+        }
+        if ((size_t)r != nak.size()) {
+          std::cerr << "Main wrote " << r << " bytes, expected " << nak.size()
+                    << std::endl;
+        }
         close(handler_fd);
         close(main_fd);
         continue;
@@ -385,7 +430,14 @@ int main(int argc, char *argv[]) {
 
       // send ack message to handler thread
       message_t ack = ACK(online_users.size(), other_users);
-      write(wr_fifos[username], ack.data(), ack.size());
+      ssize_t r = write(main_fd, ack.data(), ack.size());
+      if (r < 0) {
+        perror("write");
+      }
+      if ((size_t)r != ack.size()) {
+        std::cerr << "Main wrote " << r << " bytes, expected " << ack.size()
+                  << std::endl;
+      }
       std::cerr << "Sent ACK to handler thread" << std::endl;
 
       // send online message to all other clients
