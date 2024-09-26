@@ -1,5 +1,7 @@
 #include "tftp/packets.hpp"
 
+#include <string.h>
+
 #include "tftp/error.hpp"
 
 namespace tftp {
