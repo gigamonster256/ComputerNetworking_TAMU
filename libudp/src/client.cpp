@@ -24,9 +24,6 @@ Client::Client(const struct sockaddr_in6 &client_addr) {
     perror("TCPClient inet_ntop");
   }
 
-  fprintf(stderr, "Connected to client %s\n", peer_ip_addr);
-  fprintf(stderr, "Port: %d\n", ntohs(client_addr.sin6_port));
-
   if (connect(sockfd, (struct sockaddr *)&client_addr, sizeof(client_addr)) <
       0) {
     perror("UDPClient connect");
@@ -35,8 +32,6 @@ Client::Client(const struct sockaddr_in6 &client_addr) {
 }
 
 Client::Client(const char *server, int port_no) {
-  fprintf(stderr, "Connecting to server %s\n", server);
-  fprintf(stderr, "Port: %d\n", port_no);
   // figure out if we are using IPv4 or IPv6 based on the server address
   // simple check for colons in the address
   bool is_ipv6 = false;
@@ -52,6 +47,7 @@ Client::Client(const char *server, int port_no) {
     snprintf(peer_ip_addr, INET6_ADDRSTRLEN, "::ffff:%s", server);
   } else {
     strncpy(peer_ip_addr, server, INET6_ADDRSTRLEN);
+    peer_ip_addr[INET6_ADDRSTRLEN - 1] = '\0';
   }
 
   sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
