@@ -6,65 +6,33 @@
 
 namespace tftp {
 
-using ErrorCode = Packet::ErrorCode;
-using block_num = Packet::block_num;
-
 const Packet RRQ(const char* filename, const char* mode) {
-  Packet packet;
-  packet.opcode = Packet::Opcode::RRQ;
-  size_t filename_len = strnlen(filename, MAX_FILENAME_LEN);
-  strncpy(packet.payload.rq.payload, filename, filename_len);
-  packet.payload.rq.payload[filename_len] = '\0';
-  size_t mode_len = strnlen(mode, MAX_MODE_LEN);
-  strncpy(packet.payload.rq.payload + filename_len + 1, mode, mode_len);
-  packet.payload.rq.payload[filename_len + mode_len + 1] = '\0';
-  return packet;
+  return Packet(Opcode::RRQ, Packet::RQ(filename, mode));
 }
 
 const Packet WRQ(const char* filename, const char* mode) {
-  Packet packet;
-  packet.opcode = Packet::Opcode::WRQ;
-  size_t filename_len = strnlen(filename, MAX_FILENAME_LEN);
-  strncpy(packet.payload.rq.payload, filename, filename_len);
-  packet.payload.rq.payload[filename_len] = '\0';
-  size_t mode_len = strnlen(mode, MAX_MODE_LEN);
-  strncpy(packet.payload.rq.payload + filename_len + 1, mode, mode_len);
-  packet.payload.rq.payload[filename_len + 1 + mode_len] = '\0';
-  return packet;
+  return Packet(Opcode::WRQ, Packet::RQ(filename, mode));
 }
 
 const Packet DATA(block_num block, const char* data, size_t length) {
-  Packet packet;
-  packet.opcode = Packet::Opcode::DATA;
-  packet.payload.data.block = block;
-  memcpy(packet.payload.data.data, data, length);
-  if (length < MAX_DATA_LEN) {
-    packet.payload.data.data[length] = '\0';
-  }
-  return packet;
+  return Packet(Packet::DATA(block, data, length));
 }
 
-const Packet ACK(block_num block) {
-  Packet packet;
-  packet.opcode = Packet::Opcode::ACK;
-  packet.payload.ack = {block};
-  return packet;
+const Packet ACK(block_num block) { return Packet(Packet::ACK(block)); }
+
+const Packet ERROR(ErrorCode error_code) {
+  return Packet(Packet::ERROR(error_code));
 }
 
 const Packet ERROR(ErrorCode error_code, const char* error_message) {
-  Packet packet;
-  packet.opcode = Packet::Opcode::ERROR;
-  packet.payload.error.error_code = error_code;
-  strncpy(packet.payload.error.error_message, error_message,
-          MAX_ERROR_MESSAGE_LEN);
-  return packet;
+  return Packet(Packet::ERROR(error_code, error_message));
 }
 
 const Packet ACK_from(const Packet& packet) {
-  if (packet.opcode != Packet::Opcode::DATA) {
-    throw TFTPError("ACK can only be created from DATA packets");
+  if (packet.opcode != Opcode::DATA) {
+    throw TFTPError("ACK_from called with non-DATA packet");
   }
-  return ACK(packet.payload.data.block);
+  return Packet(Packet::ACK(packet.payload.data.get_block()));
 }
 
 }  // namespace tftp

@@ -8,85 +8,128 @@
 
 namespace tftp {
 
-using Mode = Packet::Mode;
-
-Mode Packet::mode_from_string(const char* mode_str) {
-  if (strcmp(mode_str, NETASCII_MODE) == 0) {
-    return Mode::NETASCII;
-  } else if (strcmp(mode_str, OCTET_MODE) == 0) {
-    return Mode::OCTET;
-  }
-  throw InvalidModeError(mode_str);
-}
-
-const char* Packet::mode_to_string(Mode mode) {
+const char* Mode::to_string() const {
   switch (mode) {
-    case Mode::NETASCII:
+    case Value::NETASCII:
       return NETASCII_MODE;
-    case Mode::OCTET:
+    case Value::OCTET:
       return OCTET_MODE;
   }
   return "UNKNOWN";
 }
 
-const char* Packet::opcode_to_string(Opcode opcode) {
+Mode Mode::from_string(const char* mode_str) {
+  if (strcmp(mode_str, NETASCII_MODE) == 0) {
+    return Mode(Value::NETASCII);
+  } else if (strcmp(mode_str, OCTET_MODE) == 0) {
+    return Mode(Value::OCTET);
+  }
+  throw TFTPError("Unknown mode: " + std::string(mode_str));
+}
+
+const char* Opcode::to_string() const {
   switch (opcode) {
-    case Opcode::RRQ:
-      return "RRQ";
-    case Opcode::WRQ:
-      return "WRQ";
-    case Opcode::DATA:
-      return "DATA";
-    case Opcode::ACK:
-      return "ACK";
-    case Opcode::ERROR:
-      return "ERROR";
+    case Value::RRQ:
+      return "Read Request (RRQ)";
+    case Value::WRQ:
+      return "Write Request (WRQ)";
+    case Value::DATA:
+      return "Data (DATA)";
+    case Value::ACK:
+      return "Acknowledgment (ACK)";
+    case Value::ERROR:
+      return "Error (ERROR)";
   }
   return "UNKNOWN";
 }
 
-const char* Packet::error_code_to_string(ErrorCode error_code) {
+const char* ErrorCode::to_string() const {
   switch (error_code) {
-    case ErrorCode::NOT_DEFINED:
+    case Value::NOT_DEFINED:
       return "Not defined, see error message (if any)";
-    case ErrorCode::FILE_NOT_FOUND:
+    case Value::FILE_NOT_FOUND:
       return "File not found";
-    case ErrorCode::ACCESS_VIOLATION:
+    case Value::ACCESS_VIOLATION:
       return "Access violation";
-    case ErrorCode::DISK_FULL:
+    case Value::DISK_FULL:
       return "Disk full or allocation exceeded";
-    case ErrorCode::ILLEGAL_OPERATION:
+    case Value::ILLEGAL_OPERATION:
       return "Illegal TFTP operation";
-    case ErrorCode::UNKNOWN_TRANSFER_ID:
+    case Value::UNKNOWN_TRANSFER_ID:
       return "Unknown transfer ID";
-    case ErrorCode::FILE_ALREADY_EXISTS:
+    case Value::FILE_ALREADY_EXISTS:
       return "File already exists";
-    case ErrorCode::NO_SUCH_USER:
+    case Value::NO_SUCH_USER:
       return "No such user";
   }
   return "UNKNOWN";
 }
 
+Packet::RQ::RQ(const char* filename, const char* mode) {
+  size_t filename_len = strnlen(filename, TFTP_MAX_FILENAME_LEN);
+  strncpy(payload, filename, filename_len);
+  payload[filename_len] = '\0';
+  size_t mode_len = strnlen(mode, TFTP_MAX_MODE_LEN);
+  strncpy(payload + filename_len + 1, mode, mode_len);
+  payload[filename_len + mode_len + 1] = '\0';
+}
+
 const char* Packet::RQ::filename() const { return payload; }
 
 const char* Packet::RQ::mode() const {
-  const size_t filename_len = strnlen(payload, MAX_FILENAME_LEN) + 1;
+  const size_t filename_len = strnlen(payload, TFTP_MAX_FILENAME_LEN) + 1;
   return payload + filename_len;
 }
 
 size_t Packet::RQ::size() const {
-  const size_t filename_len = strnlen(payload, MAX_FILENAME_LEN) + 1;
-  const size_t mode_len = strnlen(payload + filename_len, MAX_MODE_LEN) + 1;
+  const size_t filename_len = strnlen(payload, TFTP_MAX_FILENAME_LEN) + 1;
+  const size_t mode_len = strnlen(payload + filename_len, TFTP_MAX_MODE_LEN) + 1;
   return filename_len + mode_len;
 }
 
+Packet::DATA::DATA(block_num block, const char* data, size_t length) {
+  this->block = htons(block);
+  const size_t data_len = std::min(length, size_t{TFTP_MAX_DATA_LEN});
+  memcpy(this->data, data, data_len);
+  if (length < TFTP_MAX_DATA_LEN) {
+    this->data[length] = '\0';
+  }
+}
+
+block_num Packet::DATA::get_block() const { return ntohs(block); }
+
+// warning: may be non-null terminated if length == TFTP_MAX_DATA_LEN
+const char* Packet::DATA::get_data() const { return data; }
+
 size_t Packet::DATA::size() const {
-  const size_t data_len = strnlen(data, MAX_DATA_LEN);
+  const size_t data_len = strnlen(data, TFTP_MAX_DATA_LEN);
   return sizeof(block) + data_len;
 }
 
+Packet::ACK::ACK(block_num block) { this->block = htons(block); }
+
+block_num Packet::ACK::get_block() const { return ntohs(block); }
+
+size_t Packet::ACK::size() const { return sizeof(block); }
+
+Packet::ERROR::ERROR(ErrorCode error_code) : error_code(error_code) {
+  strncpy(error_message, "", TFTP_MAX_ERROR_MESSAGE_LEN);
+  error_message[TFTP_MAX_ERROR_MESSAGE_LEN] = '\0';
+}
+
+Packet::ERROR::ERROR(ErrorCode error_code, const char* error_message) {
+  this->error_code = error_code;
+  strncpy(this->error_message, error_message, TFTP_MAX_ERROR_MESSAGE_LEN);
+  this->error_message[TFTP_MAX_ERROR_MESSAGE_LEN] = '\0';
+}
+
+ErrorCode Packet::ERROR::get_error_code() const { return error_code; }
+
+const char* Packet::ERROR::get_error_message() const { return error_message; }
+
 size_t Packet::ERROR::size() const {
-  const size_t error_message_len = strnlen(error_message, MAX_ERROR_MESSAGE_LEN) + 1;
+  const size_t error_message_len =
+      strnlen(error_message, TFTP_MAX_ERROR_MESSAGE_LEN) + 1;
   return sizeof(error_code) + error_message_len;
 }
 
@@ -98,7 +141,7 @@ size_t Packet::size() const {
     case Opcode::DATA:
       return sizeof(opcode) + payload.data.size();
     case Opcode::ACK:
-      return sizeof(opcode) + sizeof(ACK);
+      return sizeof(opcode) + payload.ack.size();
     case Opcode::ERROR:
       return sizeof(opcode) + payload.error.size();
   }
@@ -106,25 +149,45 @@ size_t Packet::size() const {
                   std::to_string(static_cast<uint16_t>(opcode)));
 }
 
+Packet::Packet(Opcode opcode, const RQ& rq) : opcode(opcode) {
+  payload.rq = rq;
+}
+
+Packet::Packet(const DATA& data) {
+  opcode = Opcode::DATA;
+  payload.data = data;
+}
+
+Packet::Packet(const ACK& ack) {
+  opcode = Opcode::ACK;
+  payload.ack = ack;
+}
+
+Packet::Packet(const ERROR& error) {
+  opcode = Opcode::ERROR;
+  payload.error = error;
+}
+
 std::ostream& operator<<(std::ostream& os, const Packet& packet) {
-  os << "Opcode: " << Packet::opcode_to_string(packet.opcode) << std::endl;
+  os << "Opcode: " << packet.opcode.to_string() << std::endl;
   switch (packet.opcode) {
-    case Packet::Opcode::RRQ:
-    case Packet::Opcode::WRQ:
+    case Opcode::RRQ:
+    case Opcode::WRQ:
       os << "  Filename: " << packet.payload.rq.filename() << std::endl;
       os << "  Mode: " << packet.payload.rq.mode();
       break;
-    case Packet::Opcode::DATA:
-      os << "  Block: " << packet.payload.data.block << std::endl;
-      os << "  Data: " << packet.payload.data.data;
+    case Opcode::DATA:
+      os << "  Block: " << packet.payload.data.get_block() << std::endl;
+      os << "  Data length: "
+         << strnlen(packet.payload.data.get_data(), TFTP_MAX_DATA_LEN);
       break;
-    case Packet::Opcode::ACK:
-      os << "  Block: " << packet.payload.ack.block;
+    case Opcode::ACK:
+      os << "  Block: " << packet.payload.ack.get_block();
       break;
-    case Packet::Opcode::ERROR:
-      os << "  Error code: " << Packet::error_code_to_string(packet.payload.error.error_code)
-         << std::endl;
-      os << "  Error message: " << packet.payload.error.error_message;
+    case Opcode::ERROR:
+      os << "  Error code: "
+         << packet.payload.error.get_error_code().to_string() << std::endl;
+      os << "  Error message: " << packet.payload.error.get_error_message();
       break;
   }
   return os;

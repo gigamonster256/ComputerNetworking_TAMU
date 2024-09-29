@@ -5,15 +5,11 @@ LIBUDP = ../../libudp/libudp.a
 LIBTFTP = ../../libtftp/libtftp.a
 INCLUDE = -I../../libudp/include -I../../libtftp/include
 
-all: server client
+all: server
 clean:
 	rm -f server
-	rm -f client
 	rm -f *.o
 	rm -rf *.dSYM
-
-client: client.cpp $(LIBUDP) $(LIBTFTP)
-	$(CXX) $(CXXFLAGS) -o client $(INCLUDE) client.cpp $(LIBTFTP) $(LIBUDP)
 
 server: server.cpp $(LIBUDP) $(LIBTFTP)
 	$(CXX) $(CXXFLAGS) -o server $(INCLUDE) server.cpp $(LIBTFTP) $(LIBUDP)

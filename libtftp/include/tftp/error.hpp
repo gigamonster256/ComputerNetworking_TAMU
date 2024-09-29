@@ -18,7 +18,7 @@ class InvalidModeError : public TFTPError {
  public:
   InvalidModeError(const char* mode);
   InvalidModeError(const std::string& mode);
-  InvalidModeError(const tftp::Packet::Mode mode);
+  InvalidModeError(const Mode mode);
 };
 
 }  // namespace tftp
