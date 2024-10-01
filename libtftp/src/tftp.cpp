@@ -83,7 +83,8 @@ const char* Packet::RQ::mode() const {
 
 size_t Packet::RQ::size() const {
   const size_t filename_len = strnlen(payload, TFTP_MAX_FILENAME_LEN) + 1;
-  const size_t mode_len = strnlen(payload + filename_len, TFTP_MAX_MODE_LEN) + 1;
+  const size_t mode_len =
+      strnlen(payload + filename_len, TFTP_MAX_MODE_LEN) + 1;
   return filename_len + mode_len;
 }
 
@@ -91,20 +92,12 @@ Packet::DATA::DATA(block_num block, const char* data, size_t length) {
   this->block = htons(block);
   const size_t data_len = std::min(length, size_t{TFTP_MAX_DATA_LEN});
   memcpy(this->data, data, data_len);
-  if (length < TFTP_MAX_DATA_LEN) {
-    this->data[length] = '\0';
-  }
 }
 
 block_num Packet::DATA::get_block() const { return ntohs(block); }
 
-// warning: may be non-null terminated if length == TFTP_MAX_DATA_LEN
+// warning: may be non-null terminated
 const char* Packet::DATA::get_data() const { return data; }
-
-size_t Packet::DATA::size() const {
-  const size_t data_len = strnlen(data, TFTP_MAX_DATA_LEN);
-  return sizeof(block) + data_len;
-}
 
 Packet::ACK::ACK(block_num block) { this->block = htons(block); }
 
@@ -139,7 +132,7 @@ size_t Packet::size() const {
     case Opcode::WRQ:
       return sizeof(opcode) + payload.rq.size();
     case Opcode::DATA:
-      return sizeof(opcode) + payload.data.size();
+      throw TFTPError("DATA packets should be constructed with a length");
     case Opcode::ACK:
       return sizeof(opcode) + payload.ack.size();
     case Opcode::ERROR:
@@ -177,9 +170,7 @@ std::ostream& operator<<(std::ostream& os, const Packet& packet) {
       os << "  Mode: " << packet.payload.rq.mode();
       break;
     case Opcode::DATA:
-      os << "  Block: " << packet.payload.data.get_block() << std::endl;
-      os << "  Data length: "
-         << strnlen(packet.payload.data.get_data(), TFTP_MAX_DATA_LEN);
+      os << "  Block: " << packet.payload.data.get_block();
       break;
     case Opcode::ACK:
       os << "  Block: " << packet.payload.ack.get_block();

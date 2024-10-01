@@ -38,7 +38,7 @@ int main() {
               // send the data
               Packet data_packet(DATA(block, data, length));
               client->write(reinterpret_cast<void*>(&data_packet),
-                            data_packet.size());
+                            sizeof(Packet::opcode) + sizeof(block_num) + length);
               // wait for the ack
               char ack[TFTP_MAX_PACKET_LEN];
               size_t ack_length = client->read(ack, TFTP_MAX_PACKET_LEN);

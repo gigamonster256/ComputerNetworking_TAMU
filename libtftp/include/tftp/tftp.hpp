@@ -110,7 +110,6 @@ class Packet {
     DATA(block_num block, const char* data, size_t length);
     block_num get_block() const;
     const char* get_data() const;
-    size_t size() const;
   };
   static_assert(sizeof(DATA) == 514, "DATA struct must be 514 bytes");
 
