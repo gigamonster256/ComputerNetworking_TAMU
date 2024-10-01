@@ -21,7 +21,7 @@ Client::Client(const struct sockaddr_in6 &client_addr) {
   }
   if (inet_ntop(AF_INET6, &client_addr.sin6_addr, peer_ip_addr,
                 sizeof(peer_ip_addr)) == NULL) {
-    perror("TCPClient inet_ntop");
+    perror("UDPClient inet_ntop");
   }
 
   if (connect(sockfd, (struct sockaddr *)&client_addr, sizeof(client_addr)) <
@@ -32,22 +32,68 @@ Client::Client(const struct sockaddr_in6 &client_addr) {
 }
 
 Client::Client(const char *server, int port_no) {
-  // figure out if we are using IPv4 or IPv6 based on the server address
-  // simple check for colons in the address
-  bool is_ipv6 = false;
+  // check if a hostname or ip address was provided
+  if (server == nullptr) {
+    fprintf(stderr, "UDPClient: no server provided\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // check for any alphabetic characters in the server address
+  bool is_hostname = false;
   for (auto p = server; *p; p++) {
-    if (*p == ':') {
-      is_ipv6 = true;
+    if (isalpha(*p)) {
+      is_hostname = true;
       break;
     }
   }
 
-  // convert to v6 if it is v4
-  if (!is_ipv6) {
-    snprintf(peer_ip_addr, INET6_ADDRSTRLEN, "::ffff:%s", server);
-  } else {
-    strncpy(peer_ip_addr, server, INET6_ADDRSTRLEN);
-    peer_ip_addr[INET6_ADDRSTRLEN - 1] = '\0';
+  // get the address info if a hostname was provided
+  if (is_hostname) {
+    struct addrinfo hints;
+    struct addrinfo *result;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_INET6;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = 0;
+    hints.ai_protocol = 0;
+
+    int s = getaddrinfo(server, nullptr, &hints, &result);
+    if (s != 0) {
+      fprintf(stderr, "UDPClient getaddrinfo: %s\n", gai_strerror(s));
+      exit(EXIT_FAILURE);
+    }
+    // set the peer ip address to the first address in the list
+    if (result->ai_family == AF_INET6) {
+      if (inet_ntop(AF_INET6,
+                    &((struct sockaddr_in6 *)result->ai_addr)->sin6_addr,
+                    peer_ip_addr, sizeof(peer_ip_addr)) == NULL) {
+        perror("UDPClient inet_ntop");
+      }
+    } else {
+      fprintf(stderr, "UDPClient: unsupported address family\n");
+      exit(EXIT_FAILURE);
+    }
+    freeaddrinfo(result);
+  }
+  // ip address was provided
+  else {
+    // figure out if we are using IPv4 or IPv6 based on the server address
+    // simple check for colons in the address
+    bool is_ipv6 = false;
+    for (auto p = server; *p; p++) {
+      if (*p == ':') {
+        is_ipv6 = true;
+        break;
+      }
+    }
+
+    // convert to v6 if it is v4
+    if (!is_ipv6) {
+      snprintf(peer_ip_addr, INET6_ADDRSTRLEN, "::ffff:%s", server);
+    } else {
+      strncpy(peer_ip_addr, server, INET6_ADDRSTRLEN);
+      peer_ip_addr[INET6_ADDRSTRLEN - 1] = '\0';
+    }
   }
 
   sockfd = socket(AF_INET6, SOCK_DGRAM, 0);

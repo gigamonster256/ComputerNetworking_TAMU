@@ -70,6 +70,7 @@ class Server {
   unsigned int timeout_count;
 
   // configuration data
+  char server_ip_addr[INET6_ADDRSTRLEN];
   unsigned int port_no;
   unsigned int timeout;
   unsigned int max_timeouts;
@@ -82,6 +83,7 @@ class Server {
         client_handler(),
         server_pid(-1),
         timeout_count(0),
+        server_ip_addr(),
         port_no(0),
         timeout(1),
         max_timeouts(0),
@@ -91,6 +93,7 @@ class Server {
 
   // server configuration
   Server& set_port(unsigned int port_no);
+  Server& set_ip_addr(const char* ip_addr);
   Server& set_timeout(unsigned int seconds);
   Server& set_max_timeouts(unsigned int seconds);
   Server& debug(bool mode);
@@ -101,6 +104,7 @@ class Server {
   Server& set_handler_mode(ClientHandler::handle_mode mode);
   Server& set_max_clients(unsigned int max_clients);
   Server& add_handler_extra_data(void* data);
+  Server& set_initial_packet_buffer_size(size_t size);
 
   // server operation
   pid_t start();
