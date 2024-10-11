@@ -18,8 +18,9 @@
 #define TFTP_MAX_DATA_LEN 512  // spec defined
 
 #define TFTP_MAX_PACKET_LEN \
-  (4 + (TFTP_MAX_DATA_LEN))  // data packet is biggest, 2 bytes for opcode, 2 bytes
-                        // for block number, 512 bytes for data
+  (4 + (TFTP_MAX_DATA_LEN))  // data packet is biggest, 2 bytes for opcode, 2
+                             // bytes
+                             // for block number, 512 bytes for data
 
 namespace tftp {
 
@@ -44,12 +45,15 @@ class Mode {
 
 class Opcode {
  public:
+  // for some reason htons is not constexpr on certain systems
+  // this hardcoding of values is a workaround and
+  // makes this code only work on little endian systems
   enum Value : uint16_t {
-    RRQ = htons(1),    // Read Request (RRQ)
-    WRQ = htons(2),    // Write Request (WRQ)
-    DATA = htons(3),   // Data (DATA)
-    ACK = htons(4),    // Acknowledgment (ACK)
-    ERROR = htons(5),  // Error (ERROR)
+    RRQ = 256U,     // Read Request (RRQ)
+    WRQ = 512U,     // Write Request (WRQ)
+    DATA = 768U,    // Data (DATA)
+    ACK = 1024U,    // Acknowledgment (ACK)
+    ERROR = 1280U,  // Error (ERROR)
   };
 
  private:
@@ -66,14 +70,14 @@ class Opcode {
 class ErrorCode {
  public:
   enum Value : uint16_t {
-    NOT_DEFINED = htons(0),          // Not defined, see error message (if any).
-    FILE_NOT_FOUND = htons(1),       // File not found.
-    ACCESS_VIOLATION = htons(2),     // Access violation.
-    DISK_FULL = htons(3),            // Disk full or allocation exceeded.
-    ILLEGAL_OPERATION = htons(4),    // Illegal TFTP operation.
-    UNKNOWN_TRANSFER_ID = htons(5),  // Unknown transfer ID.
-    FILE_ALREADY_EXISTS = htons(6),  // File already exists.
-    NO_SUCH_USER = htons(7),         // No such user.
+    NOT_DEFINED = 0U,             // Not defined, see error message (if any).
+    FILE_NOT_FOUND = 256U,        // File not found.
+    ACCESS_VIOLATION = 512U,      // Access violation.
+    DISK_FULL = 768U,             // Disk full or allocation exceeded.
+    ILLEGAL_OPERATION = 1024U,    // Illegal TFTP operation.
+    UNKNOWN_TRANSFER_ID = 1280U,  // Unknown transfer ID.
+    FILE_ALREADY_EXISTS = 1536U,  // File already exists.
+    NO_SUCH_USER = 1792U,         // No such user.
   };
 
  private:
