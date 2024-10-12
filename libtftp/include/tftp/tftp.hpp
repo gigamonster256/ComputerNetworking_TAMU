@@ -1,10 +1,12 @@
 #ifndef _TFTP_HPP_
 #define _TFTP_HPP_
 
+#include <arpa/inet.h>
+
 #include <cstddef>
 #include <ostream>
 
-#define TFTP_PORT 69
+#define TFTP_PORT 8080
 
 #define NETASCII_MODE "netascii"
 #define OCTET_MODE "octet"
