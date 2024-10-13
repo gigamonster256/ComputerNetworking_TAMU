@@ -30,7 +30,6 @@ int main() {
               return;
             }
             // figure out the mode
-            std::cout << packet->payload.rq.mode() << std::endl;  // temp print
             Mode rrq_mode = Mode::from_string(packet->payload.rq.mode());
             // loop over blocks
             block_num block = 1;
@@ -42,7 +41,6 @@ int main() {
             bool max_data = false;
             while (timeouts < MAX_TIMEOUTS) {
               // read in file in chunks
-              std::cout << (int)next_char << std::endl;  // temp print
               if (!retry) {
                 if (rrq_mode == Mode::Value::OCTET) {
                   data_length = fread(data, 1, TFTP_MAX_DATA_LEN, file);
