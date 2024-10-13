@@ -29,17 +29,47 @@ int main() {
               client->write(reinterpret_cast<void*>(&error), error.size());
               return;
             }
+            // figure out the mode
+            std::cout << packet->payload.rq.mode() << std::endl;  // temp print
+            Mode rrq_mode = Mode::from_string(packet->payload.rq.mode());
             // loop over blocks
             block_num block = 1;
             int timeouts = 0;
             bool retry = false;
             size_t data_length = 0;
             char data[TFTP_MAX_DATA_LEN];
+            char next_char = -1;
             bool max_data = false;
             while (timeouts < MAX_TIMEOUTS) {
               // read in file in chunks
+              std::cout << (int)next_char << std::endl;  // temp print
               if (!retry) {
-                data_length = fread(data, 1, TFTP_MAX_DATA_LEN, file);
+                if (rrq_mode == Mode::Value::OCTET) {
+                  data_length = fread(data, 1, TFTP_MAX_DATA_LEN, file);
+                }
+                if (rrq_mode == Mode::Value::NETASCII) {
+                  char curr_char = -1;
+                  data_length = 0;
+                  // read one character at a time
+                  while (data_length < TFTP_MAX_DATA_LEN) {
+                    if (next_char >= 0) {
+                      data[data_length++] = next_char;
+                      next_char = -1;
+                      continue;
+                    }
+                    curr_char = fgetc(file);
+                    if (curr_char == EOF) {
+                      break;
+                    } else if (curr_char == '\n') {
+                      curr_char = '\r';
+                      next_char = '\n';
+                    } else if (curr_char == '\r') {
+                      next_char = '\0';
+                    } else
+                      next_char = -1;
+                    data[data_length++] = curr_char;
+                  }
+                }
                 // finished reading the file and last block was less than max
                 if (data_length == 0 && !max_data) {
                   break;
