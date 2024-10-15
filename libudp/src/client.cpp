@@ -38,12 +38,22 @@ Client::Client(const char *server, int port_no) {
     exit(EXIT_FAILURE);
   }
 
+  bool is_ipv6 = false;
+  for (auto p = server; *p; p++) {
+    if (*p == ':') {
+      is_ipv6 = true;
+      break;
+    }
+  }
+
   // check for any alphabetic characters in the server address
   bool is_hostname = false;
-  for (auto p = server; *p; p++) {
-    if (isalpha(*p)) {
-      is_hostname = true;
-      break;
+  if (!is_ipv6) {
+    for (auto p = server; *p; p++) {
+      if (isalpha(*p)) {
+        is_hostname = true;
+        break;
+      }
     }
   }
 
@@ -76,18 +86,7 @@ Client::Client(const char *server, int port_no) {
     freeaddrinfo(result);
   }
   // ip address was provided
-  else {
-    // figure out if we are using IPv4 or IPv6 based on the server address
-    // simple check for colons in the address
-    bool is_ipv6 = false;
-    for (auto p = server; *p; p++) {
-      if (*p == ':') {
-        is_ipv6 = true;
-        break;
-      }
-    }
-
-    // convert to v6 if it is v4
+  else {  // convert to v6 if it is v4
     if (!is_ipv6) {
       snprintf(peer_ip_addr, INET6_ADDRSTRLEN, "::ffff:%s", server);
     } else {

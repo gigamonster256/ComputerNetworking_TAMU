@@ -15,7 +15,7 @@ using namespace tftp;
 
 int main() {
   Server server;
-  server.set_port(TFTP_PORT)
+  server.set_port(8080)
       .set_max_clients(MAX_CLIENTS)
       .add_handler([](Client* client, const char* msg, size_t,
                       client_data_ptr_t) {
