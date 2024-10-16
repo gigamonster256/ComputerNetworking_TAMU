@@ -207,10 +207,7 @@ int main() {
               block++;
             }
             // write the remaining data to the file
-            char data[TFTP_MAX_PACKET_LEN];
-            buf->read(data, TFTP_MAX_PACKET_LEN);
-            auto bytesRead = buf->gcount();
-            file.write(data, bytesRead);
+            file << buf->rdbuf();
 
             if (wrq_mode == Mode::Value::NETASCII) {
               delete buf;
