@@ -10,7 +10,7 @@ rm -rf mp$MP\_$team_id/*
 
 LIBS="../libudp ../libtftp"
 
-cp -r src/* $LIBS mp$MP\_$team_id/
+cp -r ./test_cases_report_9.pdf README.md src/* $LIBS mp$MP\_$team_id/
 
 # go through src/makefile and change ../../libudp to libudp and ../../libtftp to libtftp
 sed -i 's/..\/..\/libudp/libudp/g' mp$MP\_$team_id/makefile
