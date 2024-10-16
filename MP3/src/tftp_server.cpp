@@ -131,7 +131,6 @@ int main() {
             std::stringstream ss;
             std::istream* buf = nullptr;
             if (wrq_mode == Mode::Value::NETASCII) {
-              std::cerr << "NETASCII" << std::endl;
               buf = new NetasciitoUNIXStream(ss);
             } else {
               buf = &ss;
@@ -200,7 +199,7 @@ int main() {
               }
 
               // see how many characters are in the buffer
-              size_t buf_size = ss.tellp();
+              auto buf_size = ss.tellp() - ss.tellg();
               // write the buffer to the file
               buf->read(data, buf_size - 257);
               file.write(data, buf_size - 257);
