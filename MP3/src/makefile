@@ -11,8 +11,8 @@ clean:
 	rm -f *.o
 	rm -rf *.dSYM
 
-server: server.cpp $(LIBUDP) $(LIBTFTP)
-	$(CXX) $(CXXFLAGS) -o server $(INCLUDE) server.cpp $(LIBTFTP) $(LIBUDP)
+server: tftp_server.cpp $(LIBUDP) $(LIBTFTP)
+	$(CXX) $(CXXFLAGS) -o server $(INCLUDE) tftp_server.cpp $(LIBTFTP) $(LIBUDP)
 
 $(LIBUDP):
 	$(MAKE) -C ../../libudp MODE=static
