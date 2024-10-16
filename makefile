@@ -10,3 +10,4 @@ clean:
 	$(MAKE) -C MP1/src clean
 	$(MAKE) -C MP2/src clean
 	$(MAKE) -C MP3/src clean
+	$(MAKE) -C MP4/src clean
