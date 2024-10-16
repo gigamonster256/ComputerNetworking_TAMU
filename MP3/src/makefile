@@ -11,7 +11,7 @@ clean:
 	rm -f *.o
 	rm -rf *.dSYM
 
-server: tftp_server.cpp $(LIBUDP) $(LIBTFTP)
+server: tftp_server.cpp $(LIBUDP) $(LIBTFTP) netascii.hpp
 	$(CXX) $(CXXFLAGS) -o server $(INCLUDE) tftp_server.cpp $(LIBTFTP) $(LIBUDP)
 
 $(LIBUDP):

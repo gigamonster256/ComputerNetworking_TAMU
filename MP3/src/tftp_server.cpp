@@ -1,10 +1,11 @@
-#include "udp/server.hpp"
-
 #include <sys/select.h>
 
 #include <iostream>
+#include <sstream>
 
+#include "netascii.hpp"
 #include "tftp/packets.hpp"
+#include "udp/server.hpp"
 
 using namespace udp;
 using namespace tftp;
@@ -23,51 +24,33 @@ int main() {
         switch (packet->opcode) {
           // Read request
           case Opcode::RRQ: {
-            FILE* file = fopen(packet->payload.rq.filename(), "r");
-            if (file == nullptr) {
+            std::istream* file =
+                new std::ifstream(packet->payload.rq.filename());
+            if (!file->good()) {
               Packet error(ERROR(ErrorCode::FILE_NOT_FOUND));
               client->write(reinterpret_cast<void*>(&error), error.size());
               return;
             }
             // figure out the mode
             Mode rrq_mode = Mode::from_string(packet->payload.rq.mode());
+            // convert to netascii if needed
+            std::istream* old_file_ptr = nullptr;
+            if (rrq_mode == Mode::Value::NETASCII) {
+              old_file_ptr = file;
+              file = new UNIXtoNetasciiStream(*file);
+            }
             // loop over blocks
             block_num block = 1;
             int timeouts = 0;
             bool retry = false;
             size_t data_length = 0;
             char data[TFTP_MAX_DATA_LEN];
-            char next_char = -1;
             bool max_data = false;
             while (timeouts < MAX_TIMEOUTS) {
               // read in file in chunks
               if (!retry) {
-                if (rrq_mode == Mode::Value::OCTET) {
-                  data_length = fread(data, 1, TFTP_MAX_DATA_LEN, file);
-                }
-                if (rrq_mode == Mode::Value::NETASCII) {
-                  char curr_char = -1;
-                  data_length = 0;
-                  // read one character at a time
-                  while (data_length < TFTP_MAX_DATA_LEN) {
-                    if (next_char >= 0) {
-                      data[data_length++] = next_char;
-                      next_char = -1;
-                      continue;
-                    }
-                    curr_char = fgetc(file);
-                    if (curr_char == EOF) {
-                      break;
-                    } else if (curr_char == '\n') {
-                      curr_char = '\r';
-                      next_char = '\n';
-                    } else if (curr_char == '\r') {
-                      next_char = '\0';
-                    } else
-                      next_char = -1;
-                    data[data_length++] = curr_char;
-                  }
-                }
+                file->read(data, TFTP_MAX_DATA_LEN);
+                data_length = file->gcount();
                 // finished reading the file and last block was less than max
                 if (data_length == 0 && !max_data) {
                   break;
@@ -124,19 +107,38 @@ int main() {
               }
               block++;
             }
-            fclose(file);
+            // clean up
+            delete file;
+            if (old_file_ptr != nullptr) {
+              delete old_file_ptr;
+            }
             return;
           }
           // client is sending us a file
           case Opcode::WRQ: {
-            FILE* file = fopen(packet->payload.rq.filename(), "r");
-            if (file != nullptr) {
+            // check if file already exists
+            std::ifstream check_file(packet->payload.rq.filename());
+            if (check_file.is_open()) {
               Packet error(ERROR(ErrorCode::FILE_ALREADY_EXISTS));
               client->write(reinterpret_cast<void*>(&error), error.size());
               return;
             }
+            check_file.close();
 
-            file = fopen(packet->payload.rq.filename(), "w");
+            // write data from client to string stream
+            // read from buf to file
+            Mode wrq_mode = Mode::from_string(packet->payload.rq.mode());
+            std::stringstream ss;
+            std::istream* buf = nullptr;
+            if (wrq_mode == Mode::Value::NETASCII) {
+              std::cerr << "NETASCII" << std::endl;
+              buf = new NetasciitoUNIXStream(ss);
+            } else {
+              buf = &ss;
+            }
+
+            // open file in write mode
+            std::ofstream file(packet->payload.rq.filename());
 
             Packet ack(ACK(0));
             client->write(reinterpret_cast<void*>(&ack), ack.size());
@@ -179,19 +181,15 @@ int main() {
                 break;
               }
               // repeat data block (our ack was lost)
-              if (data_packet->payload.data.get_block() == block - 1) {
+              if (data_packet->payload.data.get_block() != block) {
                 Packet ack(ACK(block - 1));
                 client->write(reinterpret_cast<void*>(&ack), ack.size());
                 continue;
               }
-              // wrong block number
-              if (data_packet->payload.data.get_block() != block) {
-                break;
-              }
-              // write the data
-              fwrite(data_packet->payload.data.get_data(), 1,
-                     data_length - sizeof(Packet::opcode) - sizeof(block_num),
-                     file);
+              // write the data to ss
+              ss.write(
+                  data_packet->payload.data.get_data(),
+                  data_length - sizeof(Packet::opcode) - sizeof(block_num));
               // send the ack
               Packet ack(ACK(block));
               client->write(reinterpret_cast<void*>(&ack), ack.size());
@@ -201,9 +199,23 @@ int main() {
                 break;
               }
 
+              // see how many characters are in the buffer
+              size_t buf_size = ss.tellp();
+              // write the buffer to the file
+              buf->read(data, buf_size - 257);
+              file.write(data, buf_size - 257);
+
               block++;
             }
-            fclose(file);
+            // write the remaining data to the file
+            char data[TFTP_MAX_PACKET_LEN];
+            buf->read(data, TFTP_MAX_PACKET_LEN);
+            auto bytesRead = buf->gcount();
+            file.write(data, bytesRead);
+
+            if (wrq_mode == Mode::Value::NETASCII) {
+              delete buf;
+            }
             return;
           }
           default: {
