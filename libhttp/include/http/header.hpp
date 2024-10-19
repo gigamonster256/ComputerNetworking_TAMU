@@ -1,11 +1,17 @@
 #ifndef _HTTP_HEADER_HPP_
 #define _HTTP_HEADER_HPP_
 
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "http/date.hpp"
 
 namespace http {
+
+class Header;
+
+typedef std::vector<std::unique_ptr<Header>> HeaderList;
 
 class Header {
  private:
@@ -19,9 +25,13 @@ class Header {
 
  public:
   virtual ~Header() = default;
-  virtual std::string to_string();
+  virtual std::string to_string() const;
 
-  static Header *parse_header(const std::string &header);
+  static std::unique_ptr<Header> parse_header(const std::string &header);
+  static std::unique_ptr<Header> parse_header(const std::string &name,
+                                              const std::string &value);
+
+  friend std::ostream &operator<<(std::ostream &os, const Header &header);
 };
 
 class GeneralHeader : public Header {
@@ -35,7 +45,12 @@ class DateHeader : public GeneralHeader {
 
  public:
   DateHeader(const std::string &value);
-  std::string to_string() override;
+  std::string to_string() const override;
+};
+
+class ExtensionHeader : public Header {
+ public:
+  ExtensionHeader(const std::string &name, const std::string &value);
 };
 
 }  // namespace http

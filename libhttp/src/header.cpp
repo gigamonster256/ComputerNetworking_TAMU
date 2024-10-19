@@ -1,5 +1,6 @@
 #include "http/header.hpp"
 
+#include <memory>
 #include <string>
 
 #include "http/constants.hpp"
@@ -20,36 +21,41 @@ Header::HeaderType Header::get_header_type(const std::string& name) {
 Header::Header(const std::string& name, const std::string& value)
     : name(name), value(value) {}
 
-std::string Header::to_string() { return name + ": " + value + CRLF; }
+std::string Header::to_string() const { return name + ": " + value; }
 
 GeneralHeader::GeneralHeader(const std::string& name, const std::string& value)
     : Header(name, value) {}
 
 DateHeader::DateHeader(const std::string& value)
     : GeneralHeader("Date", value), date(value) {}
-std::string DateHeader::to_string() {
-  return name + ": " + date.to_string() + CRLF;
+std::string DateHeader::to_string() const {
+  return name + ": " + date.to_string();
 }
 
-Header* Header::parse_header(const std::string& header) {
-  std::string name;
-  std::string value;
-  size_t colon_pos = header.find(':');
-  if (colon_pos == std::string::npos) {
+std::unique_ptr<Header> Header::parse_header(const std::string& header) {
+  size_t colon = header.find(':');
+  if (colon == std::string::npos) {
     throw HeaderParseError(header);
   }
-  name = header.substr(0, colon_pos);
-  // ignore leading whitespace
-  size_t value_start = header.find_first_not_of(" \t", colon_pos + 1);
-  if (value_start == std::string::npos) {
-    throw HeaderParseError(header);
-  }
-  value = header.substr(value_start);
+  return parse_header(header.substr(0, colon), header.substr(colon + 2));
+}
+
+std::ostream& operator<<(std::ostream& os, const Header& header) {
+  os << header.to_string();
+  return os;
+}
+
+ExtensionHeader::ExtensionHeader(const std::string& name,
+                                 const std::string& value)
+    : Header(name, value) {}
+
+std::unique_ptr<Header> Header::parse_header(const std::string& name,
+                                             const std::string& value) {
   switch (get_header_type(name)) {
     case HeaderType::Date:
-      return new DateHeader(value);
+      return std::make_unique<DateHeader>(value);
     default:
-      throw HeaderParseError(header);
+      return std::make_unique<ExtensionHeader>(name, value);
   }
 }
 

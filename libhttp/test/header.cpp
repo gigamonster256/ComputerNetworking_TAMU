@@ -7,13 +7,12 @@
 using namespace http;
 
 int main() {
-  Header* header = Header::parse_header("Date: Wed, 09 Jun 2021 10:18:14 GMT");
-  if (header == nullptr) {
+  auto header = Header::parse_header("Date: Wed, 09 Jun 2021 10:18:14 GMT");
+  if (!header) {
     std::cerr << "Failed to parse header" << std::endl;
     exit(EXIT_FAILURE);
   }
   std::cout << header->to_string() << std::endl;
-  delete header;
 
   // test invalid header
   try {
@@ -33,11 +32,11 @@ int main() {
 
   // test date gets turned from RFC 850 to RFC 1123
   header = Header::parse_header("Date: Wednesday, 09-Jun-21 10:18:14 GMT");
-  if (header == nullptr) {
+  if (!header) {
     std::cerr << "Failed to parse header" << std::endl;
     exit(EXIT_FAILURE);
   }
-  std::cout << header->to_string() << std::endl;
+  std::cout << header << std::endl;
 
   return 0;
 }

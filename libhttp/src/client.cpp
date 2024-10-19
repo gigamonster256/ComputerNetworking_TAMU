@@ -1,34 +1,38 @@
 #include "http/client.hpp"
 
+#include <iostream>
+#include <memory>
+
 #include "http/constants.hpp"
+#include "http/header.hpp"
+#include "http/message.hpp"
+#include "http/request-line.hpp"
 #include "tcp/client.hpp"
 
 namespace http {
 
-void Client::get(std::string host, std::string path) {
-  std::string request = "GET ";
-  request += path;
-  request += " HTTP/1.0";
-  request += CRLF;
-  request += "Host: ";
-  request += host;
-  request += CRLF;
-  request += "Connection: close";
-  request += CRLF;
-  request += CRLF;
+Message Client::get(const std::string& rel_path) {
+  auto headers = std::make_unique<HeaderList>();
+  headers->push_back(Header::parse_header("Host", host));
+  headers->push_back(Header::parse_header("Connection", "close"));
+  Message request = Message::GET(rel_path);
+  request.set_headers(std::move(headers));
 
-  printf("Request:\n%s\n", request.c_str());
-  tcp::Client client(host.c_str(), 80);
-  client.writen((void*)request.c_str(), request.size());
+  std::cout << "Request:\n" << request << std::endl;
+  tcp::Client client(host.c_str(), port);
+  std::string request_str = request.to_string();
+  client.writen((void*)request_str.c_str(), request_str.size());
 
-  printf("Response:\n");
+  std::string response_str;
   char buffer[1024];
-  // readline until we get an empty line
-  while (client.readline(buffer, sizeof(buffer)) > 0) {
-    printf("%s", buffer);
+  while (true) {
+    ssize_t n = client.read(buffer, sizeof(buffer));
+    if (n <= 0) {
+      break;
+    }
+    response_str.append(buffer, n);
   }
-
-  return;
+  return Message(response_str);
 }
 
 }  // namespace http

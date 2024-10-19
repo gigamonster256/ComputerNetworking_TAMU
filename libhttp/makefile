@@ -1,5 +1,5 @@
 CXX ?= g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -pedantic -O3
+CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -pedantic -O3 -g
 
 MODE ?= shared
 # MODE = static
@@ -13,7 +13,7 @@ endif
 # libhttp
 LIBHTTPDIR = src
 LIBHTTPINCLUDE = -Iinclude
-LIBHTTPSRCS = date.cpp error.cpp header.cpp client.cpp
+LIBHTTPSRCS = client.cpp date.cpp error.cpp header.cpp message.cpp request-line.cpp status-line.cpp uri.cpp
 LIBHTTPSRCS := $(addprefix $(LIBHTTPDIR)/, $(LIBHTTPSRCS))
 LIBHTTPOBJS = $(LIBHTTPSRCS:.cpp=.o)
 LIBHTTPBASE = libhttp
