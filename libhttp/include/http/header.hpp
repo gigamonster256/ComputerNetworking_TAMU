@@ -1,5 +1,4 @@
-#ifndef _HTTP_HEADER_HPP_
-#define _HTTP_HEADER_HPP_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -54,5 +53,3 @@ class ExtensionHeader : public Header {
 };
 
 }  // namespace http
-
-#endif  // _HTTP_HEADER_HPP_

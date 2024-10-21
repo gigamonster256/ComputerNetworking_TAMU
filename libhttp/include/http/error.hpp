@@ -1,5 +1,4 @@
-#ifndef _HTTP_ERROR_HPP_
-#define _HTTP_ERROR_HPP_
+#pragma once
 
 #include <exception>
 #include <string>
@@ -30,5 +29,3 @@ class DateParseError : public HTTPError {
 };
 
 }  // namespace http
-
-#endif  // _HTTP_ERROR_HPP_

@@ -1,5 +1,4 @@
-#ifndef _HTTP_DATE_HPP_
-#define _HTTP_DATE_HPP_
+#pragma once
 
 #define RFC_1123_DATE_FORMAT "%a, %d %b %Y %H:%M:%S GMT"
 #define RFC_850_DATE_FORMAT "%A, %d-%b-%y %H:%M:%S GMT"
@@ -30,5 +29,3 @@ class Date {
 };
 
 }  // namespace http
-
-#endif  // _HTTP_DATE_HPP_

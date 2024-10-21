@@ -1,5 +1,4 @@
-#ifndef _HTTP_CONSTANTS_HPP_
-#define _HTTP_CONSTANTS_HPP_
+#pragma once
 
 #include <string>
 #include <string_view>
@@ -9,5 +8,3 @@
 namespace http {
 constexpr std::string_view CRLF = "\r\n";
 }  // namespace http
-
-#endif  // _HTTP_CONSTANTS_HPP_

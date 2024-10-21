@@ -1,5 +1,4 @@
-#ifndef __HTTP_REQUEST_LINE_HPP__
-#define __HTTP_REQUEST_LINE_HPP__
+#pragma once
 
 #include <string>
 
@@ -27,5 +26,3 @@ class RequestLine {
 };
 
 }  // namespace http
-
-#endif  // __HTTP_REQUEST_LINE_HPP__

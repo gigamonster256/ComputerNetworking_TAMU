@@ -1,5 +1,4 @@
-#ifndef __HTTP_MESSAGE_HPP__
-#define __HTTP_MESSAGE_HPP__
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -41,5 +40,3 @@ class Message {
 };
 
 }  // namespace http
-
-#endif  // __HTTP_MESSAGE_HPP__

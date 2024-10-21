@@ -1,5 +1,4 @@
-#ifndef __HTTP_TYPEDEF_HPP__
-#define __HTTP_TYPEDEF_HPP__
+#pragma once
 
 #include <string>
 
@@ -53,5 +52,3 @@ class HTTPVersion {
 };
 
 }  // namespace http
-
-#endif  // __HTTP_TYPEDEF_HPP__

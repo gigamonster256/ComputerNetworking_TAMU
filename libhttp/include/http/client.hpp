@@ -1,5 +1,4 @@
-#ifndef _HTTP_CLIENT_HPP_
-#define _HTTP_CLIENT_HPP_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -20,5 +19,3 @@ class Client {
 };
 
 }  // namespace http
-
-#endif  // _HTTP_CLIENT_HPP_

@@ -1,5 +1,4 @@
-#ifndef __HTTP_STATUS_LINE_HPP__
-#define __HTTP_STATUS_LINE_HPP__
+#pragma once
 
 #include <string>
 
@@ -58,5 +57,3 @@ class StatusLine {
   const std::optional<std::string>& get_reason() const { return reason; }
 };
 }  // namespace http
-
-#endif  // __HTTP_STATUS_LINE_HPP__

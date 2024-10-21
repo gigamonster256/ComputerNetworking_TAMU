@@ -1,5 +1,4 @@
-#ifndef __HTTP_URI_HPP__
-#define __HTTP_URI_HPP__
+#pragma once
 
 #include <string>
 #include <variant>
@@ -29,5 +28,3 @@ class URI {
 };
 
 }  // namespace http
-
-#endif  // __HTTP_URI_HPP__
