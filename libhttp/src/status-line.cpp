@@ -1,6 +1,7 @@
 #include "http/status-line.hpp"
 
 #include "http/constants.hpp"
+#include "http/error.hpp"
 #include "http/typedef.hpp"
 
 namespace http {
@@ -65,6 +66,7 @@ std::string StatusCode::to_string() const {
     case StatusCodeEnum::EXTENSION:
       return std::to_string(*extension_code);
   }
+  throw HTTPError();
 }
 
 std::string StatusCode::get_reason() const {
@@ -102,6 +104,7 @@ std::string StatusCode::get_reason() const {
     case StatusCodeEnum::EXTENSION:
       return "Extension";
   }
+  throw HTTPError();
 }
 
 std::ostream& operator<<(std::ostream& os, const StatusCode& code) {

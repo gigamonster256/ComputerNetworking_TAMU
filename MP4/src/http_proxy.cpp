@@ -1,6 +1,9 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <mutex>
+#include <tuple>
+#include <unordered_map>
 
 #include "http/client.hpp"
 #include "http/constants.hpp"
