@@ -2,13 +2,24 @@
 
 namespace http {
 
-const char* HTTPError::what() const noexcept { return "HTTP error"; }
+char error_buffer[1024];
 
 HeaderParseError::HeaderParseError(const std::string& header)
-    : header(header) {}
-const char* HeaderParseError::what() const noexcept { return header.c_str(); }
+    : HTTPError(), header(header) {}
 
-DateParseError::DateParseError(const std::string& date) : date(date) {}
-const char* DateParseError::what() const noexcept { return date.c_str(); }
+const char* HeaderParseError::what() const noexcept {
+  snprintf(error_buffer, sizeof(error_buffer), "Header parse error: %s",
+           header.c_str());
+  return error_buffer;
+}
+
+DateParseError::DateParseError(const std::string& date)
+    : HTTPError(), date(date) {}
+
+const char* DateParseError::what() const noexcept {
+  snprintf(error_buffer, sizeof(error_buffer), "Date parse error: %s",
+           date.c_str());
+  return error_buffer;
+}
 
 }  // namespace http

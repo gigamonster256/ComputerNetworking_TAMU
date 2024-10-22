@@ -18,9 +18,9 @@ class Message {
   std::optional<std::string> body;
 
  public:
-  Message(const RequestLine& request_line) : first_line(request_line) {}
-  Message(RequestLine&& request_line) : first_line(std::move(request_line)) {}
-  Message(const std::string& message);
+  explicit Message(const RequestLine& request_line) : first_line(request_line) {}
+  explicit Message(RequestLine&& request_line) : first_line(std::move(request_line)) {}
+  explicit Message(const std::string& message);
   virtual ~Message() = default;
 
   Message& add_header(std::unique_ptr<Header> header);

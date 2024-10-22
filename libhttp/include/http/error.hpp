@@ -5,9 +5,9 @@
 
 namespace http {
 
-class HTTPError : public std::exception {
+class HTTPError : public std::runtime_error {
  public:
-  virtual const char* what() const noexcept override;
+  HTTPError() : std::runtime_error("HTTP Error") {}
 };
 
 class HeaderParseError : public HTTPError {
@@ -15,7 +15,7 @@ class HeaderParseError : public HTTPError {
   std::string header;
 
  public:
-  HeaderParseError(const std::string& header);
+  explicit HeaderParseError(const std::string& header);
   const char* what() const noexcept override;
 };
 
@@ -24,7 +24,7 @@ class DateParseError : public HTTPError {
   std::string date;
 
  public:
-  DateParseError(const std::string& date);
+  explicit DateParseError(const std::string& date);
   const char* what() const noexcept override;
 };
 

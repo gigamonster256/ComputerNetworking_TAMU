@@ -179,7 +179,7 @@ void Server::exec() {
   auto pid = start();
   if (use_thread) {
     while (true) {
-      sleep(1);
+      sleep(1000);
     }
   } else {
     if (pid < 0) {

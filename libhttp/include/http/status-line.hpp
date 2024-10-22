@@ -34,10 +34,10 @@ class StatusCode {
 
  public:
   StatusCode() = default;
-  StatusCode(const std::string& code);
+  explicit StatusCode(const std::string& code);
 
   std::string to_string() const;
-  std::string reason_phrase() const;
+  std::string get_reason() const;
   StatusCodeEnum get_code() const { return code; }
   int get_extension_code() const { return extension_code.value(); }
 

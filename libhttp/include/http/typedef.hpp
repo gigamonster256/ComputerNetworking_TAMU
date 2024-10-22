@@ -44,7 +44,7 @@ class HTTPVersion {
 
  public:
   HTTPVersion() = default;
-  HTTPVersion(const std::string& version);
+  explicit HTTPVersion(const std::string& version);
 
   std::string to_string() const;
   int get_major() const { return major; }

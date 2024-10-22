@@ -21,7 +21,7 @@ class URI {
 
  public:
   URI() = default;
-  URI(const std::string& uri);
+  explicit URI(const std::string& uri);
 
   std::string to_string() const;
   const std::string& get_path() const;

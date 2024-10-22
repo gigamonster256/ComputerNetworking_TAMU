@@ -15,7 +15,8 @@ class Client {
  public:
   Client(const std::string& host) : host(host), port(HTTP_PORT) {}
   Client(const std::string& host, int port) : host(host), port(port) {}
-  std::unique_ptr<Message> get(const std::string& path);
+  std::unique_ptr<Message> get(const std::string& path,
+                               HeaderList&& additional_headers = {});
 };
 
 }  // namespace http

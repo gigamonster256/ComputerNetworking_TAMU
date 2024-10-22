@@ -12,11 +12,13 @@ namespace http {
 enum class Header::HeaderType {
   Date,
   Expires,
+  LastModified,
   Unknown,
 };
 Header::HeaderType Header::get_header_type(const std::string& name) {
   if (name == "Date") return HeaderType::Date;
   if (name == "Expires") return HeaderType::Expires;
+  if (name == "Last-Modified") return HeaderType::LastModified;
   return HeaderType::Unknown;
 }
 
@@ -37,9 +39,18 @@ std::string DateHeader::to_string() const {
   return name + ": " + date.to_string();
 }
 
+ExpiresHeader::ExpiresHeader(const Date& date)
+    : EntityHeader("Expires", date.to_string()), date(date) {}
+
 ExpiresHeader::ExpiresHeader(const std::string& value)
     : EntityHeader("Expires", value), date(value) {}
 std::string ExpiresHeader::to_string() const {
+  return name + ": " + date.to_string();
+}
+
+LastModifiedHeader::LastModifiedHeader(const std::string& value)
+    : EntityHeader("Last-Modified", value), date(value) {}
+std::string LastModifiedHeader::to_string() const {
   return name + ": " + date.to_string();
 }
 
@@ -65,8 +76,20 @@ std::unique_ptr<Header> Header::parse_header(const std::string& name,
   switch (get_header_type(name)) {
     case HeaderType::Date:
       return std::make_unique<DateHeader>(value);
-    case HeaderType::Expires:
-      return std::make_unique<ExpiresHeader>(value);
+    case HeaderType::Expires: {
+      // https://datatracker.ietf.org/doc/html/rfc1945#section-10.7
+      // Applications are encouraged to be tolerant of bad or
+      // misinformed implementations of the Expires header. A value of zero
+      // (0) or an invalid date format should be considered equivalent to
+      // an "expires immediately."
+      try {
+        return std::make_unique<ExpiresHeader>(value);
+      } catch (DateParseError&) {
+        return std::make_unique<ExpiresHeader>(Date(time(nullptr)));
+      }
+    }
+    case HeaderType::LastModified:
+      return std::make_unique<LastModifiedHeader>(value);
     default:
       return std::make_unique<ExtensionHeader>(name, value);
   }

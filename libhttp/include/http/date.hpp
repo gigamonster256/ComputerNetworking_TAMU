@@ -15,7 +15,8 @@ class Date {
   std::time_t date;
 
  public:
-  Date(const std::string& date);
+  explicit Date(const std::string& date);
+  explicit Date(std::time_t date) : date(date) {}
 
   bool operator<(const Date& other) const;
   bool operator>(const Date& other) const;
@@ -26,7 +27,7 @@ class Date {
 
   std::string to_string() const;
   friend std::ostream& operator<<(std::ostream& os, const Date& date);
-  time_t get_time() const { return date; }
+  constexpr time_t get_time() const { return date; }
 };
 
 }  // namespace http

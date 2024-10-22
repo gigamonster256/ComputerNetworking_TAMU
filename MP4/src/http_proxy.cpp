@@ -25,7 +25,8 @@ typedef std::unordered_map<size_t, CacheEntry> Cache;
 Cache cache;
 std::mutex cache_mutex;
 
-std::pair<std::string, std::string> get_host_and_path(const std::string& uri) {
+std::pair<std::string, std::string> get_host_and_path_from_uri(
+    const std::string& uri) {
   // strip the http://<host> part
   size_t pos = uri.find("://");
   std::string host;
@@ -48,6 +49,13 @@ std::pair<std::string, std::string> get_host_and_path(const std::string& uri) {
   return std::make_pair(host, path);
 }
 
+void print_welcome_message(char* ip, int port) {
+  std::cerr << "Starting proxy on " << ip << ":" << port << std::endl;
+  std::cerr << "Press Ctrl+C to stop the proxy" << std::endl;
+  std::cerr << "Send SIGUSR1 to print cache summary" << std::endl;
+  std::cerr << "PID: " << getpid() << std::endl;
+}
+
 int main(int argc, char* argv[]) {
   if (argc != 3) {
     usage(argv[0]);
@@ -56,10 +64,7 @@ int main(int argc, char* argv[]) {
   char* ip = argv[1];
   int port = atoi(argv[2]);
 
-  std::cerr << "Starting proxy on " << ip << ":" << port << std::endl;
-  std::cerr << "Press Ctrl+C to stop the proxy" << std::endl;
-  std::cerr << "Send SIGUSR1 to print cache summary" << std::endl;
-  std::cerr << "PID: " << getpid() << std::endl;
+  print_welcome_message(ip, port);
 
   auto extra_data = std::make_tuple(&cache, &cache_mutex);
 
@@ -70,11 +75,11 @@ int main(int argc, char* argv[]) {
       std::cerr << "Hash: " << hash << std::endl;
       std::cerr << "Last used: " << std::get<0>(entry) << std::endl;
       std::cerr << "Expiration: " << std::get<1>(entry) << std::endl;
-      std::cerr << "Response: " << std::get<2>(entry)->to_string() << std::endl;
+      std::cerr << "Response: " << *std::get<2>(entry) << std::endl;
     }
   });
 
-  Server server;
+  tcp::Server server;
   server.set_ip_addr(ip)
       .set_port(port)
       .use_threads()  // use threads to handle multiple clients instead of
@@ -83,8 +88,8 @@ int main(int argc, char* argv[]) {
       .add_handler([](tcp::Client* client, void* extra_data) {
         auto [cache, cache_mutex] =
             *static_cast<std::tuple<Cache*, std::mutex*>*>(extra_data);
-        // read in the http request from the client (get request ends with 2
-        // CRLFs)
+        // read in the http request from the client (get request ends with
+        // 2CRLFs)
         std::string request_str;
         char buffer[1024];
         while (true) {
@@ -94,14 +99,12 @@ int main(int argc, char* argv[]) {
           }
           request_str.append(buffer, bytes_read);
           if (request_str.size() >= 4 &&
-              request_str.substr(request_str.size() - 4) == "\r\n\r\n") {
+              request_str.substr(request_str.size() - 4) ==
+                  std::string(CRLF) + std::string(CRLF)) {
             break;
           }
         }
         http::Message request(request_str);
-
-        // check for Content-Length header
-        // auto content_length_header = request.get_header("Content-Length");
 
         auto now = time(nullptr);
 
@@ -110,43 +113,62 @@ int main(int argc, char* argv[]) {
         std::cerr << "Request for " << uri << std::endl;
 
         // get the host and path
-        auto [host, path] = get_host_and_path(uri);
+        auto [host, path] = get_host_and_path_from_uri(uri);
+        auto additional_headers = HeaderList{};
 
         // check if the uri is in the cache
         size_t hash = std::hash<std::string>{}(uri);
-        // lock the cache
-        cache_mutex->lock();
         auto it = cache->find(hash);
+        // if an entry exists in the cache and it is not expired
         if (it != cache->end()) {
           CacheEntry& entry = it->second;
-          ExpirationTime expiration_time = std::get<1>(entry);
-          // cache hit and not expired
+          auto expiration_time = std::get<1>(entry);
+          // if the entry is not expired
           if (now < expiration_time) {
             std::cerr << "Cache hit for " << uri << std::endl;
+            std::cerr << "Re-send the response" << std::endl;
             std::cerr << "Expires in " << expiration_time - now << " seconds"
                       << std::endl;
             // update the last used time
             std::get<0>(entry) = now;
             std::string response_str = std::get<2>(entry)->to_string();
             client->writen((void*)response_str.c_str(), response_str.size());
-            cache_mutex->unlock();
             return;
           }
-          // stale cache entry
+          // stale cache entry -- make a conditional get
           std::cerr << "Stale cache entry for " << uri << std::endl;
+          std::cerr << "Sending if modified since header" << std::endl;
+          // build a request with If-Modified-Since header
+          auto last_used_time_tm = *gmtime(&expiration_time);
+          char if_modified_since[128];
+          strftime(if_modified_since, sizeof(if_modified_since),
+                   "If-Modified-Since: %a, %d %b %Y %H:%M:%S GMT",
+                   &last_used_time_tm);
+          additional_headers.push_back(Header::parse_header(if_modified_since));
+        } else {
+          std::cerr << "Cache miss for " << uri << std::endl;
         }
-        cache_mutex->unlock();
-
-        // cache miss
-        std::cerr << "Cache miss for " << uri << std::endl;
 
         // create a client to the server
         http::Client http_client(host);
         // get the response from the server
-        auto response = http_client.get(path);
-        // write the response back to the client
-        std::string response_str = response->to_string();
-        client->writen((void*)response_str.c_str(), response_str.size());
+        auto response = http_client.get(path, std::move(additional_headers));
+
+        auto status_code = response->get_status_code();
+        std::cerr << "Response status: " << status_code.to_string()
+                  << std::endl;
+
+        // check if the response is a 304 Not Modified
+        if (status_code.get_code() == StatusCodeEnum::NOT_MODIFIED) {
+          std::cerr << "Serving from cache" << std::endl;
+          auto& entry = cache->at(hash);
+          // update the last used time
+          std::get<0>(entry) = now;
+          // write the response back to the client
+          auto response_str = std::get<2>(entry)->to_string();
+          client->writen((void*)response_str.c_str(), response_str.size());
+          return;
+        }
 
         auto expiration_time = now;  // default to not caching
 
@@ -161,10 +183,38 @@ int main(int argc, char* argv[]) {
           expiration_time = expires_header_cast->get_date().get_time();
           std::cerr << "Expires in " << expiration_time - now << " seconds"
                     << std::endl;
+        } else {
+          auto last_modified_header = response->get_header("Last-Modified");
+          if (last_modified_header) {
+            std::cerr << "Last-Modified header found" << std::endl;
+            std::cerr << *last_modified_header << std::endl;
+            // cast the header to a LastModifiedHeader
+            auto last_modified_header_cast =
+                dynamic_cast<const LastModifiedHeader*>(last_modified_header);
+            expiration_time = last_modified_header_cast->get_date().get_time();
+            std::cerr << "Expires in " << expiration_time - now << " seconds"
+                      << std::endl;
+          } else {
+            auto date_header = response->get_header("Date");
+            if (date_header) {
+              std::cerr << "Date header found" << std::endl;
+              std::cerr << *date_header << std::endl;
+              // cast the header to a DateHeader
+              auto date_header_cast =
+                  dynamic_cast<const DateHeader*>(date_header);
+              expiration_time = date_header_cast->get_date().get_time();
+              std::cerr << "Expires in " << expiration_time - now << " seconds"
+                        << std::endl;
+            } else {
+              std::cerr << "No expiration information found" << std::endl;
+            }
+          }
         }
 
-        // lock the cache
-        std::lock_guard<std::mutex> lock(*cache_mutex);
+        // write the response back to the client
+        std::string response_str = response->to_string();
+        client->writen((void*)response_str.c_str(), response_str.size());
+
         cache->emplace(hash,
                        CacheEntry{now, expiration_time, std::move(response)});
 

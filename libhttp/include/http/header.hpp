@@ -20,7 +20,7 @@ class Header {
  protected:
   std::string name;
   std::string value;
-  Header(const std::string &name, const std::string &value);
+  explicit Header(const std::string &name, const std::string &value);
 
  public:
   virtual ~Header() = default;
@@ -38,12 +38,12 @@ class Header {
 
 class GeneralHeader : public Header {
  protected:
-  GeneralHeader(const std::string &name, const std::string &value);
+  explicit GeneralHeader(const std::string &name, const std::string &value);
 };
 
 class EntityHeader : public Header {
  protected:
-  EntityHeader(const std::string &name, const std::string &value);
+  explicit EntityHeader(const std::string &name, const std::string &value);
 };
 
 class DateHeader : public GeneralHeader {
@@ -51,7 +51,7 @@ class DateHeader : public GeneralHeader {
   Date date;
 
  public:
-  DateHeader(const std::string &value);
+  explicit DateHeader(const std::string &value);
   std::string to_string() const override;
   const Date &get_date() const { return date; }
 };
@@ -61,14 +61,25 @@ class ExpiresHeader : public EntityHeader {
   Date date;
 
  public:
-  ExpiresHeader(const std::string &value);
+  explicit ExpiresHeader(const Date &date);
+  explicit ExpiresHeader(const std::string &value);
+  std::string to_string() const override;
+  const Date &get_date() const { return date; }
+};
+
+class LastModifiedHeader : public EntityHeader {
+ private:
+  Date date;
+
+ public:
+  explicit LastModifiedHeader(const std::string &value);
   std::string to_string() const override;
   const Date &get_date() const { return date; }
 };
 
 class ExtensionHeader : public Header {
  public:
-  ExtensionHeader(const std::string &name, const std::string &value);
+  explicit ExtensionHeader(const std::string &name, const std::string &value);
 };
 
 }  // namespace http

@@ -67,7 +67,7 @@ std::string StatusCode::to_string() const {
   }
 }
 
-std::string StatusCode::reason_phrase() const {
+std::string StatusCode::get_reason() const {
   switch (code) {
     case StatusCodeEnum::OK:
       return "OK";
@@ -105,7 +105,7 @@ std::string StatusCode::reason_phrase() const {
 }
 
 std::ostream& operator<<(std::ostream& os, const StatusCode& code) {
-  os << code.to_string() << ' ' << code.reason_phrase();
+  os << code.to_string() << ' ' << code.get_reason();
   return os;
 }
 

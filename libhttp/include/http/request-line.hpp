@@ -16,7 +16,7 @@ class RequestLine {
 
  public:
   RequestLine() = default;
-  RequestLine(const std::string& request_line);
+  explicit RequestLine(const std::string& request_line);
 
   std::string to_string() const;
   MethodType get_method_type() const { return method.get_type(); }
