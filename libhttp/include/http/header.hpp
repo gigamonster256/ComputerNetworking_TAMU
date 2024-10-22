@@ -26,6 +26,9 @@ class Header {
   virtual ~Header() = default;
   virtual std::string to_string() const;
 
+  const std::string &get_name() const { return name; }
+  const std::string &get_value() const { return value; }
+
   static std::unique_ptr<Header> parse_header(const std::string &header);
   static std::unique_ptr<Header> parse_header(const std::string &name,
                                               const std::string &value);
@@ -38,6 +41,11 @@ class GeneralHeader : public Header {
   GeneralHeader(const std::string &name, const std::string &value);
 };
 
+class EntityHeader : public Header {
+ protected:
+  EntityHeader(const std::string &name, const std::string &value);
+};
+
 class DateHeader : public GeneralHeader {
  private:
   Date date;
@@ -45,6 +53,17 @@ class DateHeader : public GeneralHeader {
  public:
   DateHeader(const std::string &value);
   std::string to_string() const override;
+  const Date &get_date() const { return date; }
+};
+
+class ExpiresHeader : public EntityHeader {
+ private:
+  Date date;
+
+ public:
+  ExpiresHeader(const std::string &value);
+  std::string to_string() const override;
+  const Date &get_date() const { return date; }
 };
 
 class ExtensionHeader : public Header {

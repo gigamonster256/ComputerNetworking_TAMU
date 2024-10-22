@@ -47,6 +47,8 @@ class HTTPVersion {
   HTTPVersion(const std::string& version);
 
   std::string to_string() const;
+  int get_major() const { return major; }
+  int get_minor() const { return minor; }
 
   static const HTTPVersion HTTP_1_0;
 };

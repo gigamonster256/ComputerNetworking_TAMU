@@ -10,7 +10,9 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <iostream>
 #include <stdexcept>
+#include <thread>
 
 #include "tcp/error.hpp"
 
@@ -89,6 +91,20 @@ Server& Server::set_timeout_handler(TimeoutFunction handler) {
   return *this;
 }
 
+Server& Server::use_threads() {
+  if (server_pid >= 0) {
+    throw ConfigurationError("Cannot set use threads while server is running");
+  }
+  std::cerr << "WARNING: Using threads is very new and may not work as expected"
+            << std::endl;
+  std::cerr << "WARNING: max_clients is not supported with threads"
+            << std::endl;
+
+  client_handler.use_threads();
+  use_thread = true;
+  return *this;
+}
+
 Server& Server::add_handler(ClientHandlerFunction handler) {
   if (server_pid >= 0) {
     throw ConfigurationError("Cannot add handler while server is running");
@@ -139,16 +155,21 @@ pid_t Server::start() {
     throw ConfigurationError("Max clients not set");
   }
 
-  server_pid = fork();
+  if (!use_thread) {
+    server_pid = fork();
 
-  if (server_pid < 0) {
-    perror("TCPServer fork");
-    return server_pid;
-  }
+    if (server_pid < 0) {
+      perror("TCPServer fork");
+      return server_pid;
+    }
 
-  if (server_pid == 0) {
-    run_server();
-    exit(EXIT_SUCCESS);
+    if (server_pid == 0) {
+      run_server();
+      exit(EXIT_SUCCESS);
+    }
+  } else {
+    std::thread server_thread([this]() { run_server(); });
+    server_thread.detach();
   }
 
   return server_pid;
@@ -156,14 +177,19 @@ pid_t Server::start() {
 
 void Server::exec() {
   auto pid = start();
+  if (use_thread) {
+    while (true) {
+      sleep(1);
+    }
+  } else {
+    if (pid < 0) {
+      perror("TCPServer exec");
+      exit(EXIT_FAILURE);
+    }
 
-  if (pid < 0) {
-    perror("TCPServer exec");
-    exit(EXIT_FAILURE);
-  }
-
-  if (waitpid(pid, nullptr, 0) < 0) {
-    perror("TCPServer waitpid");
+    if (waitpid(pid, nullptr, 0) < 0) {
+      perror("TCPServer waitpid");
+    }
   }
   exit(EXIT_SUCCESS);
 }
@@ -417,39 +443,61 @@ void Server::ClientHandler::accept(int server_sock_fd) {
     close(client_sock_fd);
     return;
   }
+  if (!use_thread) {
+    auto pid = fork();
+    if (pid < 0) {
+      perror("TCPClientHandler fork");
+      close(client_sock_fd);
+      return;
+    }
+    if (pid == 0) {
+      // child process
+      if (debug_mode) {
+        fprintf(stderr, "Got new connection... creating TCPClient\n");
+      }
+      close(server_sock_fd);
 
-  auto pid = fork();
-  if (pid < 0) {
-    perror("TCPClientHandler fork");
+      Client* client = new Client(client_sock_fd, client_addr);
+
+      if (debug_mode) {
+        fprintf(stderr, "Handling connection from %s\n", client->peer_ip());
+      }
+
+      if (debug_mode) {
+        fprintf(stderr, "Calling handler\n");
+      }
+
+      handler(client, extra_data);
+      delete client;
+      exit(EXIT_SUCCESS);
+    }
     close(client_sock_fd);
-    return;
-  }
-  if (pid == 0) {
-    // child process
     if (debug_mode) {
-      fprintf(stderr, "Got new connection... creating TCPClient\n");
+      fprintf(stderr, "Adding child pid: %d\n", pid);
     }
-    close(server_sock_fd);
+    clients.push_back(pid);
+  } else {
+    std::thread handler_thread([handler, client_sock_fd, client_addr, this]() {
+      if (debug_mode) {
+        fprintf(stderr, "Got new connection... creating TCPClient\n");
+      }
 
-    Client* client = new Client(client_sock_fd, client_addr);
+      Client* client = new Client(client_sock_fd, client_addr);
 
-    if (debug_mode) {
-      fprintf(stderr, "Handling connection from %s\n", client->peer_ip());
-    }
+      if (debug_mode) {
+        fprintf(stderr, "Handling connection from %s\n", client->peer_ip());
+      }
 
-    if (debug_mode) {
-      fprintf(stderr, "Calling handler\n");
-    }
+      if (debug_mode) {
+        fprintf(stderr, "Calling handler\n");
+      }
 
-    handler(client, extra_data);
-    delete client;
-    exit(EXIT_SUCCESS);
+      handler(client, extra_data);
+
+      delete client;
+    });
+    handler_thread.detach();
   }
-  close(client_sock_fd);
-  if (debug_mode) {
-    fprintf(stderr, "Adding child pid: %d\n", pid);
-  }
-  clients.push_back(pid);
 }
 
 }  // namespace tcp

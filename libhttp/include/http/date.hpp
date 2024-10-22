@@ -26,6 +26,7 @@ class Date {
 
   std::string to_string() const;
   friend std::ostream& operator<<(std::ostream& os, const Date& date);
+  time_t get_time() const { return date; }
 };
 
 }  // namespace http

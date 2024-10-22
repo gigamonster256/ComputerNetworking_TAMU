@@ -33,38 +33,80 @@ StatusCodeEnum StatusCode::get_status_code(const std::string& code) {
 std::string StatusCode::to_string() const {
   switch (code) {
     case StatusCodeEnum::OK:
-      return "200 OK";
+      return "200";
     case StatusCodeEnum::CREATED:
-      return "201 Created";
+      return "201";
     case StatusCodeEnum::ACCEPTED:
-      return "202 Accepted";
+      return "202";
     case StatusCodeEnum::NO_CONTENT:
-      return "204 No Content";
+      return "204";
     case StatusCodeEnum::MOVED_PERMANENTLY:
-      return "301 Moved Permanently";
+      return "301";
     case StatusCodeEnum::MOVED_TEMPORARILY:
-      return "302 Moved Temporarily";
+      return "302";
     case StatusCodeEnum::NOT_MODIFIED:
-      return "304 Not Modified";
+      return "304";
     case StatusCodeEnum::BAD_REQUEST:
-      return "400 Bad Request";
+      return "400";
     case StatusCodeEnum::UNAUTHORIZED:
-      return "401 Unauthorized";
+      return "401";
     case StatusCodeEnum::FORBIDDEN:
-      return "403 Forbidden";
+      return "403";
     case StatusCodeEnum::NOT_FOUND:
-      return "404 Not Found";
+      return "404";
     case StatusCodeEnum::INTERNAL_SERVER_ERROR:
-      return "500 Internal Server Error";
+      return "500";
     case StatusCodeEnum::NOT_IMPLEMENTED:
-      return "501 Not Implemented";
+      return "501";
     case StatusCodeEnum::BAD_GATEWAY:
-      return "502 Bad Gateway";
+      return "502";
     case StatusCodeEnum::SERVICE_UNAVAILABLE:
-      return "503 Service Unavailable";
+      return "503";
     case StatusCodeEnum::EXTENSION:
-      return std::to_string(extension_code.value());
+      return std::to_string(*extension_code);
   }
+}
+
+std::string StatusCode::reason_phrase() const {
+  switch (code) {
+    case StatusCodeEnum::OK:
+      return "OK";
+    case StatusCodeEnum::CREATED:
+      return "Created";
+    case StatusCodeEnum::ACCEPTED:
+      return "Accepted";
+    case StatusCodeEnum::NO_CONTENT:
+      return "No Content";
+    case StatusCodeEnum::MOVED_PERMANENTLY:
+      return "Moved Permanently";
+    case StatusCodeEnum::MOVED_TEMPORARILY:
+      return "Moved Temporarily";
+    case StatusCodeEnum::NOT_MODIFIED:
+      return "Not Modified";
+    case StatusCodeEnum::BAD_REQUEST:
+      return "Bad Request";
+    case StatusCodeEnum::UNAUTHORIZED:
+      return "Unauthorized";
+    case StatusCodeEnum::FORBIDDEN:
+      return "Forbidden";
+    case StatusCodeEnum::NOT_FOUND:
+      return "Not Found";
+    case StatusCodeEnum::INTERNAL_SERVER_ERROR:
+      return "Internal Server Error";
+    case StatusCodeEnum::NOT_IMPLEMENTED:
+      return "Not Implemented";
+    case StatusCodeEnum::BAD_GATEWAY:
+      return "Bad Gateway";
+    case StatusCodeEnum::SERVICE_UNAVAILABLE:
+      return "Service Unavailable";
+    case StatusCodeEnum::EXTENSION:
+      return "Extension";
+  }
+}
+
+std::ostream& operator<<(std::ostream& os, const StatusCode& code) {
+  os << code.to_string() << ' ' << code.reason_phrase();
+  return os;
 }
 
 StatusLine::StatusLine(const std::string& status_line) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ostream>
 #include <string>
 
 #include "http/typedef.hpp"
@@ -36,6 +37,11 @@ class StatusCode {
   StatusCode(const std::string& code);
 
   std::string to_string() const;
+  std::string reason_phrase() const;
+  StatusCodeEnum get_code() const { return code; }
+  int get_extension_code() const { return extension_code.value(); }
+
+  friend std::ostream& operator<<(std::ostream& os, const StatusCode& code);
 
  private:
   StatusCodeEnum get_status_code(const std::string& code);

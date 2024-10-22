@@ -11,14 +11,12 @@
 
 namespace http {
 
-Message Client::get(const std::string& rel_path) {
+std::unique_ptr<Message> Client::get(const std::string& rel_path) {
   auto headers = std::make_unique<HeaderList>();
-  headers->push_back(Header::parse_header("Host", host));
-  headers->push_back(Header::parse_header("Connection", "close"));
   Message request = Message::GET(rel_path);
-  request.set_headers(std::move(headers));
+  request.add_header(Header::parse_header("Host", host));
+  request.add_header(Header::parse_header("Connection", "close"));
 
-  std::cout << "Request:\n" << request << std::endl;
   tcp::Client client(host.c_str(), port);
   std::string request_str = request.to_string();
   client.writen((void*)request_str.c_str(), request_str.size());
@@ -32,7 +30,7 @@ Message Client::get(const std::string& rel_path) {
     }
     response_str.append(buffer, n);
   }
-  return Message(response_str);
+  return std::make_unique<Message>(response_str);
 }
 
 }  // namespace http

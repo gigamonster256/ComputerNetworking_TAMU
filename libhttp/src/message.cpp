@@ -11,13 +11,12 @@
 
 namespace http {
 
-Message::Message(const std::string& message)
-    : headers(std::make_unique<HeaderList>()) {
-      std::cerr << "Message::Message(const std::string& message) called" << std::endl;
-      std::cerr << "message: " <<std::endl << message << std::endl;
+Message::Message(const std::string& message) {
   size_t pos = 0;
   size_t end = message.find(CRLF, pos);
   if (end == std::string::npos) {
+    std::cerr << "Oops! " << message << std::endl;
+    std::cerr << message << std::endl;
     throw std::runtime_error("Invalid message");
   }
   std::string first_line_str = message.substr(pos, end - pos);
@@ -30,7 +29,7 @@ Message::Message(const std::string& message)
   end = message.find(CRLF, pos);
   while (true) {
     std::string header_str = message.substr(pos, end - pos);
-    headers->push_back(Header::parse_header(header_str));
+    headers.push_back(Header::parse_header(header_str));
     pos = end + CRLF.size();
     end = message.find(CRLF, pos);
     if (end == pos) {
@@ -43,19 +42,23 @@ Message::Message(const std::string& message)
   }
 }
 
-Message& Message::set_headers(std::unique_ptr<HeaderList> headers) {
-  this->headers = std::move(headers);
-  return *this;
-}
-
 Message& Message::add_header(std::unique_ptr<Header> header) {
-  headers->push_back(std::move(header));
+  headers.push_back(std::move(header));
   return *this;
 }
 
 Message& Message::add_header(const std::string& name,
                              const std::string& value) {
   return add_header(Header::parse_header(name, value));
+}
+
+const Header* Message::get_header(const std::string& name) {
+  for (const auto& header : headers) {
+    if (header->get_name() == name) {
+      return header.get();
+    }
+  }
+  return nullptr;
 }
 
 Message& Message::set_body(const std::string& body) {
@@ -68,17 +71,30 @@ const std::string Message::to_string() const {
       std::visit([](const auto& first_line) { return first_line.to_string(); },
                  first_line);
   message += CRLF;
-  if (headers) {
-    for (const auto& header : *headers) {
-      message += header->to_string();
-      message += CRLF;
-    }
+  for (const auto& header : headers) {
+    message += header->to_string();
+    message += CRLF;
   }
   message += CRLF;
   if (body) {
     message += *body;
   }
   return message;
+}
+
+const StatusCode& Message::get_status_code() const {
+  assert(std::holds_alternative<StatusLine>(first_line));
+  return std::get<StatusLine>(first_line).get_code();
+}
+
+MethodType Message::get_method() const {
+  assert(std::holds_alternative<RequestLine>(first_line));
+  return std::get<RequestLine>(first_line).get_method_type();
+}
+
+std::string Message::get_uri() const {
+  assert(std::holds_alternative<RequestLine>(first_line));
+  return std::get<RequestLine>(first_line).get_uri();
 }
 
 Message Message::GET(const std::string& path) {

@@ -11,10 +11,12 @@ namespace http {
 
 enum class Header::HeaderType {
   Date,
+  Expires,
   Unknown,
 };
 Header::HeaderType Header::get_header_type(const std::string& name) {
   if (name == "Date") return HeaderType::Date;
+  if (name == "Expires") return HeaderType::Expires;
   return HeaderType::Unknown;
 }
 
@@ -26,9 +28,18 @@ std::string Header::to_string() const { return name + ": " + value; }
 GeneralHeader::GeneralHeader(const std::string& name, const std::string& value)
     : Header(name, value) {}
 
+EntityHeader::EntityHeader(const std::string& name, const std::string& value)
+    : Header(name, value) {}
+
 DateHeader::DateHeader(const std::string& value)
     : GeneralHeader("Date", value), date(value) {}
 std::string DateHeader::to_string() const {
+  return name + ": " + date.to_string();
+}
+
+ExpiresHeader::ExpiresHeader(const std::string& value)
+    : EntityHeader("Expires", value), date(value) {}
+std::string ExpiresHeader::to_string() const {
   return name + ": " + date.to_string();
 }
 
@@ -54,6 +65,8 @@ std::unique_ptr<Header> Header::parse_header(const std::string& name,
   switch (get_header_type(name)) {
     case HeaderType::Date:
       return std::make_unique<DateHeader>(value);
+    case HeaderType::Expires:
+      return std::make_unique<ExpiresHeader>(value);
     default:
       return std::make_unique<ExtensionHeader>(name, value);
   }

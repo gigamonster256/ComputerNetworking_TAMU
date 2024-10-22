@@ -29,6 +29,7 @@ class Server {
     handle_mode mode;
     bool debug_mode;
     client_data_ptr_t extra_data;
+    bool use_thread;
 
     ClientHandler()
         : current_handler(0),
@@ -37,7 +38,8 @@ class Server {
           handlers(),
           mode(RoundRobin),
           debug_mode(false),
-          extra_data(nullptr) {}
+          extra_data(nullptr),
+          use_thread(false) {}
     ~ClientHandler();
     void set_max_clients(unsigned int max) { max_clients = max; }
     void add_handler(ClientHandlerFunction handler) {
@@ -46,6 +48,7 @@ class Server {
     void set_mode(handle_mode mode) { this->mode = mode; }
     void debug(bool mode) { debug_mode = mode; }
     void set_extra_data(client_data_ptr_t data) { extra_data = data; }
+    void use_threads() { use_thread = true; }
 
     void accept(int server_sock_fd);
     void reap_clients();
@@ -70,6 +73,7 @@ class Server {
   unsigned int max_timeouts;
   unsigned int backlog;
   bool debug_mode;
+  bool use_thread;
   TimeoutFunction timeout_handler;
 
  public:
@@ -84,6 +88,7 @@ class Server {
         max_timeouts(0),
         backlog(5),
         debug_mode(false),
+        use_thread(false),
         timeout_handler(nullptr) {}
   ~Server();
 
@@ -95,6 +100,7 @@ class Server {
   Server& set_backlog(unsigned int size);
   Server& debug(bool mode);
   Server& set_timeout_handler(TimeoutFunction handler);
+  Server& use_threads();
 
   // client handler configuration
   Server& add_handler(ClientHandlerFunction handler);
