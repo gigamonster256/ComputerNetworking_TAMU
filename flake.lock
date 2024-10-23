@@ -16,9 +16,30 @@
         "type": "github"
       }
     },
+    "personal-packages": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1729714136,
+        "narHash": "sha256-QOP+2Mx1rzZblvPUnyEoRrYzPlPuS+YTFmrEJT7iX0U=",
+        "owner": "gigamonster256",
+        "repo": "nur-packages",
+        "rev": "537794f6ce3280b6555995a80a232968d22cbdc5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gigamonster256",
+        "repo": "nur-packages",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "personal-packages": "personal-packages"
       }
     }
   },
