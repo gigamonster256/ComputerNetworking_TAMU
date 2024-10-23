@@ -5,6 +5,8 @@ LIBTCP = ../../libtcp/libtcp.a
 LIBHTTP = ../../libhttp/libhttp.a
 INCLUDE = -I../../libhttp/include -I../../libtcp/include
 
+.PHONY: all clean $(LIBTCP) $(LIBHTTP)
+
 all: proxy client
 clean:
 	rm -f proxy
