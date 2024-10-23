@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
         auto now = time(nullptr);
 
         // get the requested uri
-        std::string uri = request.get_uri();
+        auto uri = request.get_uri();
         std::cerr << "Request for " << uri << std::endl;
 
         // get the host and path
@@ -120,11 +120,11 @@ int main(int argc, char* argv[]) {
         auto additional_headers = HeaderList{};
 
         // check if the uri is in the cache
-        size_t hash = std::hash<std::string>{}(uri);
+        auto hash = std::hash<std::string>{}(uri);
         auto it = cache->find(hash);
         // if an entry exists in the cache and it is not expired
         if (it != cache->end()) {
-          CacheEntry& entry = it->second;
+          auto& entry = it->second;
           auto expiration_time = std::get<1>(entry);
           // if the entry is not expired
           if (now < expiration_time) {
@@ -134,7 +134,7 @@ int main(int argc, char* argv[]) {
                       << std::endl;
             // update the last used time
             std::get<0>(entry) = now;
-            std::string response_str = std::get<2>(entry)->to_string();
+            auto response_str = std::get<2>(entry)->to_string();
             client->writen((void*)response_str.c_str(), response_str.size());
             return;
           }
@@ -215,7 +215,7 @@ int main(int argc, char* argv[]) {
         }
 
         // write the response back to the client
-        std::string response_str = response->to_string();
+        auto response_str = response->to_string();
         client->writen((void*)response_str.c_str(), response_str.size());
 
         cache->emplace(hash,
