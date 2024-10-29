@@ -1,5 +1,5 @@
 CXX ?= g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -pedantic -O3 -g
+CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -pedantic -O3
 
 MODE ?= shared
 # MODE = static
