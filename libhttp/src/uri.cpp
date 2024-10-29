@@ -1,5 +1,7 @@
 #include "http/uri.hpp"
 
+#include <string>
+
 namespace http {
 
 URI::URI(const std::string& uri) {
@@ -41,6 +43,23 @@ const std::string& URI::get_path() const {
   } else {
     return std::get<RelativeURI>(uri);
   }
+}
+
+// super basic and not actually correct
+std::string URI::encode(const std::string& str) {
+  std::string result;
+  for (char c : str) {
+    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+      result += c;
+    } else {
+      result += '%';
+      // char in hex - hacky way to convert to hex
+      const char* hex = "0123456789ABCDEF";
+      result += hex[(c >> 4) & 0xF];
+      result += hex[c & 0xF];
+    }
+  }
+  return result;
 }
 
 }  // namespace http

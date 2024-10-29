@@ -26,6 +26,8 @@ class URI {
 
   std::string to_string() const;
   const std::string& get_path() const;
+
+  static std::string encode(const std::string& str);
 };
 
 }  // namespace http

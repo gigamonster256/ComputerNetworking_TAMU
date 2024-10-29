@@ -30,13 +30,22 @@ int main() {
     std::cerr << "DateParseError: " << e.what() << std::endl;
   }
 
+  // invalid Expires should be converted to now
+  std::cout << "Test invalid Expires" << std::endl;
+  header = Header::parse_header("Expires: Invalid date");
+  if (!header) {
+    std::cerr << "Failed to parse header" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  std::cout << *header << std::endl;
+
   // test date gets turned from RFC 850 to RFC 1123
   header = Header::parse_header("Date: Wednesday, 09-Jun-21 10:18:14 GMT");
   if (!header) {
     std::cerr << "Failed to parse header" << std::endl;
     exit(EXIT_FAILURE);
   }
-  std::cout << header << std::endl;
+  std::cout << *header << std::endl;
 
   return 0;
 }
