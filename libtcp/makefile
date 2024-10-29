@@ -19,6 +19,8 @@ LIBTCPOBJS = $(LIBTCPSRCS:.cpp=.o)
 LIBTCPBASE = libtcp
 LIBTCP = $(LIBTCPBASE).$(LIBEXT)
 
+LIBS = -lpthread
+
 TESTDIR = test
 TESTSRCS = server.cpp
 TESTSRCS := $(addprefix $(TESTDIR)/, $(TESTSRCS))
@@ -31,12 +33,13 @@ clean:
 	rm -f libtcp.a
 	rm -f libtcp.so
 	rm -f $(LIBTCPDIR)/*.o
+	rm -f $(TESTDIR)/*.out
 
 test: $(TESTEXECS)
 	for test in $(TESTEXECS); do ./$$test; done
 
 $(TESTDIR)/%: $(TESTDIR)/%.cpp $(LIBTCP)
-	$(CXX) $(CXXFLAGS) $(LIBTCPINCLUDE) $(INCLUDES) -o $@ $< $(LIBTCP)
+	$(CXX) $(CXXFLAGS) $(LIBTCPINCLUDE) -o $@ $< $(LIBTCP)
 
 $(LIBTCPBASE).a: $(LIBTCPOBJS)
 	ar rcs $@ $(LIBTCPOBJS)
@@ -45,7 +48,7 @@ $(LIBTCPBASE).so : $(LIBTCPOBJS)
 	$(CXX) $(CXXFLAGS) -shared -o $@ $(LIBTCPOBJS)
 
 $(LIBTCPDIR)/%.o: $(LIBTCPDIR)/%.cpp
-	$(CXX) $(CXXFLAGS) $(LIBTCPINCLUDE) $(INCLUDES) -fPIC -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(LIBTCPINCLUDE) $(LIBS) -fPIC -c -o $@ $<
 
 
 
