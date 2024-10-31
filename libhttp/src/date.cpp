@@ -10,17 +10,17 @@ namespace http {
 Date::Date(const std::string& date) {
   struct tm tm;
   if (strptime(date.c_str(), RFC_1123_DATE_FORMAT, &tm) != nullptr) {
-    this->date = mktime(&tm);
+    this->date = mktime(&tm) - timezone + (daylight ? 3600 : 0);
     return;
   }
 
   if (strptime(date.c_str(), RFC_850_DATE_FORMAT, &tm) != nullptr) {
-    this->date = mktime(&tm);
+    this->date = mktime(&tm) - timezone + (daylight ? 3600 : 0);
     return;
   }
 
   if (strptime(date.c_str(), ANSI_C_DATE_FORMAT, &tm) != nullptr) {
-    this->date = mktime(&tm);
+    this->date = mktime(&tm) - timezone + (daylight ? 3600 : 0);
     return;
   }
 
