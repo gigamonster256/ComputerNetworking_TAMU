@@ -95,10 +95,6 @@ Server& Server::use_threads() {
   if (server_pid >= 0) {
     throw ConfigurationError("Cannot set use threads while server is running");
   }
-  std::cerr << "WARNING: Using threads is very new and may not work as expected"
-            << std::endl;
-  std::cerr << "WARNING: max_clients is not supported with threads"
-            << std::endl;
 
   client_handler.use_threads();
   use_thread = true;
