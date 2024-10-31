@@ -19,7 +19,13 @@ LIBTCPOBJS = $(LIBTCPSRCS:.cpp=.o)
 LIBTCPBASE = libtcp
 LIBTCP = $(LIBTCPBASE).$(LIBEXT)
 
-LIBS = -lpthread
+
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Linux)
+	LIBS = -lpthread
+endif
+
 
 TESTDIR = test
 TESTSRCS = server.cpp

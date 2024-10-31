@@ -5,7 +5,7 @@ LIBTCP = ../../libtcp/libtcp.a
 LIBHTTP = ../../libhttp/libhttp.a
 INCLUDE = -I../../libhttp/include -I../../libtcp/include
 
-.PHONY: all clean $(LIBTCP) $(LIBHTTP)
+.PHONY: all clean
 
 all: proxy client
 clean:
@@ -15,10 +15,10 @@ clean:
 	rm -rf *.dSYM
 
 client: http_client.cpp $(LIBTCP) $(LIBHTTP)
-	$(CXX) $(CXXFLAGS) -o client $(INCLUDE) http_client.cpp $(LIBTCP) $(LIBHTTP)
+	$(CXX) $(CXXFLAGS) -o client $(INCLUDE) http_client.cpp $(LIBHTTP) $(LIBTCP)
 
 proxy: http_proxy.cpp $(LIBTCP) $(LIBHTTP)
-	$(CXX) $(CXXFLAGS) -o proxy $(INCLUDE) http_proxy.cpp $(LIBTCP) $(LIBHTTP)
+	$(CXX) $(CXXFLAGS) -o proxy $(INCLUDE) http_proxy.cpp $(LIBHTTP) $(LIBTCP) 
 
 $(LIBTCP):
 	$(MAKE) -C ../../libtcp MODE=static

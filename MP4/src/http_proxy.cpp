@@ -1,5 +1,6 @@
 #include <unistd.h>
 
+#include <csignal>
 #include <iostream>
 #include <mutex>
 #include <tuple>
