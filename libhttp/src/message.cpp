@@ -27,14 +27,11 @@ Message::Message(const std::string& message) {
   }
   pos = end + CRLF.size();
   end = message.find(CRLF, pos);
-  while (true) {
+  while (end != pos) {
     std::string header_str = message.substr(pos, end - pos);
     headers.push_back(Header::parse_header(header_str));
     pos = end + CRLF.size();
     end = message.find(CRLF, pos);
-    if (end == pos) {
-      break;
-    }
   }
   pos += CRLF.size();
   if (pos < message.size()) {

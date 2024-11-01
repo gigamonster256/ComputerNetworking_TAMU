@@ -20,6 +20,8 @@ class Message {
  public:
   explicit Message(const RequestLine& request_line) : first_line(request_line) {}
   explicit Message(RequestLine&& request_line) : first_line(std::move(request_line)) {}
+  explicit Message(const StatusCode& status_code) : first_line(StatusLine(status_code)) {}
+  explicit Message(StatusCode&& status_code) : first_line(StatusLine(std::move(status_code))) {}
   explicit Message(const std::string& message);
   virtual ~Message() = default;
 

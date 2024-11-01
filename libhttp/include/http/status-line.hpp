@@ -35,6 +35,7 @@ class StatusCode {
  public:
   StatusCode() = default;
   explicit StatusCode(const std::string& code);
+  explicit StatusCode(StatusCodeEnum code);
 
   std::string to_string() const;
   std::string get_reason() const;
@@ -55,6 +56,8 @@ class StatusLine {
  public:
   StatusLine() = default;
   StatusLine(const std::string& status_line);
+  StatusLine(const StatusCode& code, const HTTPVersion& version = HTTPVersion::HTTP_1_0,
+             const std::optional<std::string>& reason = std::nullopt);
 
   std::string to_string() const;
 

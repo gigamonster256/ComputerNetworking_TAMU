@@ -118,6 +118,15 @@ int main(int argc, char* argv[]) {
 
         // get the host and path
         auto [host, path] = get_host_and_path_from_uri(uri);
+        // check if host has a port number
+        auto pos = host.find_last_of(':');
+        // default port is 80
+        int port = 80;
+        if (pos != std::string::npos) {
+          port = std::stoi(host.substr(pos + 1));
+          host = host.substr(0, pos);
+        }
+
         auto additional_headers = HeaderList{};
 
         // check if the uri is in the cache
@@ -154,7 +163,7 @@ int main(int argc, char* argv[]) {
         }
 
         // create a client to the server
-        http::Client http_client(host);
+        http::Client http_client(host, port);
         // get the response from the server
         auto response = http_client.get(path, std::move(additional_headers));
 
@@ -219,11 +228,9 @@ int main(int argc, char* argv[]) {
         auto response_str = response->to_string();
         client->writen((void*)response_str.c_str(), response_str.size());
 
-        cache->emplace(hash,
-                       CacheEntry{now, expiration_time, std::move(response)});
-
         // if cache has 11 entries, remove the oldest one
-        if (cache->size() > 10) {
+        if (cache->size() >= 10) {
+          std::cerr << "Cache is full, removing oldest entry" << std::endl;
           auto oldest = cache->begin();
           for (auto it = cache->begin(); it != cache->end(); ++it) {
             if (std::get<0>(it->second) < std::get<0>(oldest->second)) {
@@ -232,28 +239,11 @@ int main(int argc, char* argv[]) {
           }
           cache->erase(oldest);
         }
+
+        std::cerr << "Adding response from " << uri << " to cache" << std::endl;
+        cache->emplace(hash,
+                       CacheEntry{now, expiration_time, std::move(response)});
       })
       // .debug(true)
       .exec();
-  // .start();
-
-  // // periodically clean the cache
-  // while (true) {
-  //   sleep(10);
-  //   std::cerr << "Cleaning cache" << std::endl;
-  //   int count = 0;
-  //   // clean up expired cache entries
-  //   auto now = time(nullptr);
-  //   for (auto it = cache.begin(); it != cache.end();) {
-  //     CacheEntry& entry = it->second;
-  //     ExpirationTime expiration_time = std::get<1>(entry);
-  //     if (now >= expiration_time) {
-  //       it = cache.erase(it);
-  //       ++count;
-  //     } else {
-  //       ++it;
-  //     }
-  //   }
-  //   std::cerr << "Cleaned " << count << " expired entries" << std::endl;
-  // }
 }

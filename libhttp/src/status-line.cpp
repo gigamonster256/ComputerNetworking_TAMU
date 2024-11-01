@@ -12,6 +12,12 @@ StatusCode::StatusCode(const std::string& code) : code(get_status_code(code)) {
   }
 }
 
+StatusCode::StatusCode(StatusCodeEnum code) : code(code) {
+  if (code == StatusCodeEnum::EXTENSION) {
+    throw HTTPError();
+  }
+}
+
 StatusCodeEnum StatusCode::get_status_code(const std::string& code) {
   if (code == "200") return StatusCodeEnum::OK;
   if (code == "201") return StatusCodeEnum::CREATED;
@@ -122,6 +128,10 @@ StatusLine::StatusLine(const std::string& status_line) {
   if (crlf - second_space > 1)
     reason = status_line.substr(second_space + 1, crlf - second_space - 1);
 }
+
+StatusLine::StatusLine(const StatusCode& code, const HTTPVersion& version,
+                       const std::optional<std::string>& reason)
+    : version(version), code(code), reason(reason) {}
 
 std::string StatusLine::to_string() const {
   std::string status_line = version.to_string();
