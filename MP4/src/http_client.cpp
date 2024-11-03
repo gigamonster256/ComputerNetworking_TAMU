@@ -1,5 +1,6 @@
-#include <iostream>
+#include <algorithm>
 #include <fstream>
+#include <iostream>
 
 #include "http/client.hpp"
 #include "http/message.hpp"
@@ -30,7 +31,6 @@ int main(int argc, char* argv[]) {
     std::cout << "Response body:" << std::endl;
     std::cout << *response->get_body() << std::endl;
   }
-
 
   // save to file in write mode
   std::string filename = std::string(argv[3]);
