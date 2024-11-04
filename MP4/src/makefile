@@ -17,6 +17,7 @@ all: proxy client
 clean:
 	rm -f proxy
 	rm -f client
+	rm -f server
 	rm -f *.o
 	rm -rf *.dSYM
 	rm -rf *.http
