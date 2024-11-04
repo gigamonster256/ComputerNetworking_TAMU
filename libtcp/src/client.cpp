@@ -50,7 +50,7 @@ Client::Client(const char *server, int port_no) {
     struct addrinfo hints;
     struct addrinfo *result;
     memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_INET6;
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = 0;
     hints.ai_protocol = 0;
@@ -61,12 +61,15 @@ Client::Client(const char *server, int port_no) {
       exit(EXIT_FAILURE);
     }
     // set the peer ip address to the first address in the list
-    if (result->ai_family == AF_INET6) {
-      if (inet_ntop(AF_INET6,
-                    &((struct sockaddr_in6 *)result->ai_addr)->sin6_addr,
-                    peer_ip_addr, sizeof(peer_ip_addr)) == NULL) {
+    // for now, only support IPv4
+    char namebuf[INET6_ADDRSTRLEN];
+    if (result->ai_family == AF_INET) {
+      if (inet_ntop(AF_INET,
+                    &((struct sockaddr_in *)result->ai_addr)->sin_addr,
+                    namebuf, sizeof(namebuf)) == NULL) {
         perror("TCPClient inet_ntop");
       }
+      snprintf(peer_ip_addr, INET6_ADDRSTRLEN, "::ffff:%s", namebuf);
     } else {
       fprintf(stderr, "TCPClient: unsupported address family\n");
       exit(EXIT_FAILURE);
