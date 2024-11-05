@@ -62,7 +62,7 @@ Client::Client(const char *server, int port_no) {
     }
     // set the peer ip address to the first address in the list
     // for now, only support IPv4
-    char namebuf[INET6_ADDRSTRLEN];
+    char namebuf[INET_ADDRSTRLEN];
     if (result->ai_family == AF_INET) {
       if (inet_ntop(AF_INET,
                     &((struct sockaddr_in *)result->ai_addr)->sin_addr,
