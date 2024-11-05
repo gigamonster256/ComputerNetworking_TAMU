@@ -166,8 +166,7 @@ int main(int argc, char* argv[]) {
         if (route != routes.end()) {
           std::cout << "200" << std::endl;
           // check for If-Modified-Since header
-          if (auto if_modified_since_header =
-                  request.get_header("If-Modified-Since")) {
+          if (request.get_header("If-Modified-Since")) {
             std::cerr << "If-Modified-Since header found" << std::endl;
 
             // all other trests return 200 but test5 returns 304
