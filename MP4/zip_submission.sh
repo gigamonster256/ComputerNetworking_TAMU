@@ -10,7 +10,7 @@ rm -rf mp$MP\_$team_id/*
 
 LIBS="../libtcp ../libhttp"
 
-cp -r src/* $LIBS mp$MP\_$team_id/
+cp -r src/* $LIBS README.md test_cases_report_9.pdf mp$MP\_$team_id/
 
 # go through src/makefile and change ../../ to nothing
 sed -i 's/..\/..\/libtcp/libtcp/g' mp$MP\_$team_id/makefile
