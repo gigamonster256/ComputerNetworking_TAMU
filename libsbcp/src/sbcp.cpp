@@ -117,7 +117,7 @@ void Message::validate() const {
   validate_version();
   constexpr size_t attribute_header_size =
       sizeof(Attribute::type_t) + sizeof(Attribute::length_t);
-  switch (header.type) {
+  switch (header.get_type()) {
     case message_type_t::JOIN:
       // can only have one username attribute
       if (header.length > attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
@@ -174,7 +174,7 @@ void Message::validate() const {
 }
 
 void Message::validate_version() const {
-  if (header.version != SBCP_VERSION) {
+  if (header.get_version() != SBCP_VERSION) {
     throw MessageException("Invalid version");
   }
 }
@@ -238,15 +238,13 @@ void Message::add_client_count(attribute_t::payload_t::client_count_t value) {
 }
 
 void Message::change_to_fwd(const char* username, size_t length) {
-  assert(header.type == message_type_t::SEND);
-  header.type = message_type_t::FWD;
+  assert(header.get_type() == message_type_t::SEND);
+  header.set_type(message_type_t::FWD);
   add_username(username, length);
 }
 
 void Message::change_to_fwd(const char* username) {
-  assert(header.type == message_type_t::SEND);
-  header.type = message_type_t::FWD;
-  add_username(username);
+  change_to_fwd(username, strlen(username));
 }
 
 void Message::change_to_fwd(const std::string& username) {

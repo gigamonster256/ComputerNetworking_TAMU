@@ -89,7 +89,7 @@ typedef class Message {
     friend class Message;
   } attribute_t;
 
-  typedef enum class Type : uint8_t {
+  typedef enum Type : uint8_t {
     JOIN = 2,
     SEND = 4,
     FWD = 3,
@@ -105,9 +105,24 @@ typedef class Message {
 
  public:
   typedef struct header {
-    version_t version : 9;
-    type_t type : 7;
+    uint8_t version_and_type_upper;
+    uint8_t version_and_type_lower;
     length_t length;
+
+    constexpr header(version_t version, type_t type, length_t length)
+        : version_and_type_upper(version >> 1),
+          version_and_type_lower((version & 0x1) << 7 | type),
+          length(length) {}
+
+    type_t get_type() const noexcept { return Type(version_and_type_lower & 0x7F); }
+    version_t get_version() const noexcept { return (version_and_type_upper << 1) | (version_and_type_lower >> 7); }
+    void set_type(type_t type) noexcept {
+      version_and_type_lower = (version_and_type_lower & 0x80) | type;
+    }
+    void set_version(version_t version) noexcept {
+      version_and_type_upper = version >> 1;
+      version_and_type_lower = (version_and_type_lower & 0x7F) | ((version & 0x1) << 7);
+    }
   } header_t;
 
  private:
@@ -116,13 +131,13 @@ typedef class Message {
 
  public:
   explicit constexpr Message() noexcept
-      : header(header_t{SBCP_VERSION, type_t::JOIN, 0}), payload() {}
+      : header(SBCP_VERSION, type_t::JOIN, 0), payload() {}
   explicit constexpr Message(type_t type) noexcept
-      : header(header_t{SBCP_VERSION, type, 0}), payload() {}
+      : header(SBCP_VERSION, type, 0), payload() {}
   void validate() const;
   void validate_version() const;
-  version_t constexpr get_version() const noexcept { return header.version; }
-  type_t constexpr get_type() const noexcept { return header.type; }
+  version_t constexpr get_version() const noexcept { return header.get_version(); }
+  type_t constexpr get_type() const noexcept { return header.get_type(); }
   length_t constexpr get_length() const noexcept { return header.length; }
   size_t size() const noexcept { return sizeof(header) + header.length; }
   const char* data() const noexcept {
