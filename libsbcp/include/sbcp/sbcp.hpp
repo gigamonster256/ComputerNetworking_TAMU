@@ -51,14 +51,14 @@ typedef class Message {
 
    public:
     explicit constexpr Attribute(type_t type) noexcept
-        : type(type), length(0), payload() {}
+        : type(type), length(htons(0)), payload() {}
     explicit Attribute(type_t, const char*);
     explicit Attribute(type_t, const char*, size_t);
     explicit Attribute(type_t, payload_t::client_count_t);
     constexpr type_t get_type() const noexcept { return type; }
-    constexpr length_t get_length() const noexcept { return length; }
+    constexpr length_t get_length() const noexcept { return ntohs(length); }
     constexpr size_t size() const noexcept {
-      return sizeof(type) + sizeof(length) + length;
+      return sizeof(type) + sizeof(length) + get_length();
     }
     const char* get_username() const {
       assert(type == type_t::USERNAME);
@@ -74,7 +74,7 @@ typedef class Message {
     }
     payload_t::client_count_t get_client_count() const noexcept {
       assert(type == type_t::CLIENT_COUNT);
-      return payload.client_count;
+      return ntohs(payload.client_count);
     }
 
    private:
@@ -112,17 +112,24 @@ typedef class Message {
     constexpr header(version_t version, type_t type, length_t length)
         : version_and_type_upper(version >> 1),
           version_and_type_lower((version & 0x1) << 7 | type),
-          length(length) {}
+          length(htons(length)) {}
 
-    type_t get_type() const noexcept { return Type(version_and_type_lower & 0x7F); }
-    version_t get_version() const noexcept { return (version_and_type_upper << 1) | (version_and_type_lower >> 7); }
+    type_t get_type() const noexcept {
+      return Type(version_and_type_lower & 0x7F);
+    }
+    version_t get_version() const noexcept {
+      return (version_and_type_upper << 1) | (version_and_type_lower >> 7);
+    }
+    length_t get_length() const noexcept { return ntohs(length); }
     void set_type(type_t type) noexcept {
       version_and_type_lower = (version_and_type_lower & 0x80) | type;
     }
     void set_version(version_t version) noexcept {
       version_and_type_upper = version >> 1;
-      version_and_type_lower = (version_and_type_lower & 0x7F) | ((version & 0x1) << 7);
+      version_and_type_lower =
+          (version_and_type_lower & 0x7F) | ((version & 0x1) << 7);
     }
+    void set_length(length_t length) noexcept { this->length = htons(length); }
   } header_t;
 
  private:
@@ -136,10 +143,12 @@ typedef class Message {
       : header(SBCP_VERSION, type, 0), payload() {}
   void validate() const;
   void validate_version() const;
-  version_t constexpr get_version() const noexcept { return header.get_version(); }
+  version_t constexpr get_version() const noexcept {
+    return header.get_version();
+  }
   type_t constexpr get_type() const noexcept { return header.get_type(); }
-  length_t constexpr get_length() const noexcept { return header.length; }
-  size_t size() const noexcept { return sizeof(header) + header.length; }
+  length_t constexpr get_length() const noexcept { return header.get_length(); }
+  size_t size() const noexcept { return sizeof(header) + header.get_length(); }
   const char* data() const noexcept {
     return reinterpret_cast<const char*>(this);
   }
@@ -213,9 +222,11 @@ typedef class Message {
 
  public:
   iterator begin() { return iterator(this); }
-  iterator end() { return iterator(this, header.length); }
+  iterator end() { return iterator(this, header.get_length()); }
   const_iterator begin() const { return const_iterator(this); }
-  const_iterator end() const { return const_iterator(this, header.length); }
+  const_iterator end() const {
+    return const_iterator(this, header.get_length());
+  }
 
   friend std::ostream& operator<<(std::ostream& os, const Message& msg);
 

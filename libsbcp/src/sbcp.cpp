@@ -11,7 +11,7 @@
 namespace sbcp {
 
 Message::Attribute::Attribute(type_t type, const char* value, size_t length)
-    : type(type), length(0), payload() {
+    : type(type), length(htons(0)), payload() {
   switch (type) {
     case type_t::USERNAME:
       set_username(value, length);
@@ -28,7 +28,7 @@ Message::Attribute::Attribute(type_t type, const char* value, size_t length)
 }
 
 Message::Attribute::Attribute(type_t type, const char* value)
-    : type(type), length(0), payload() {
+    : type(type), length(htons(0)), payload() {
   switch (type) {
     case type_t::USERNAME:
       set_username(value, strlen(value));
@@ -45,12 +45,13 @@ Message::Attribute::Attribute(type_t type, const char* value)
 }
 
 Message::Attribute::Attribute(type_t type, payload_t::client_count_t value)
-    : type(type), length(sizeof(value)), payload() {
+    : type(type), length(htons(sizeof(value))), payload() {
   assert(type == type_t::CLIENT_COUNT);
   set_client_count(value);
 }
 
 void Message::Attribute::validate() const {
+  auto length = get_length();
   switch (type) {
     case type_t::USERNAME:
       if (length > SBCP_MAX_USERNAME_LENGTH) {
@@ -80,37 +81,37 @@ void Message::Attribute::validate() const {
 void Message::Attribute::set_username(const char* value,
                                       size_t length) noexcept {
   assert(type == type_t::USERNAME);
-  this->length = length;
-  if (this->length > SBCP_MAX_USERNAME_LENGTH) {
-    this->length = SBCP_MAX_USERNAME_LENGTH;
+  this->length = htons(length);
+  if (length > SBCP_MAX_USERNAME_LENGTH) {
+    this->length = htons(SBCP_MAX_USERNAME_LENGTH);
   }
-  memcpy(payload.username, value, this->length);
+  memcpy(payload.username, value, length);
 }
 
 void Message::Attribute::set_message(const char* value,
                                      size_t length) noexcept {
   assert(type == type_t::MESSAGE);
-  this->length = length;
-  if (this->length > SBCP_MAX_MESSAGE_LENGTH) {
-    this->length = SBCP_MAX_MESSAGE_LENGTH;
+  this->length = htons(length);
+  if (length > SBCP_MAX_MESSAGE_LENGTH) {
+    this->length = htons(SBCP_MAX_MESSAGE_LENGTH);
   }
-  memcpy(payload.message, value, this->length);
+  memcpy(payload.message, value, length);
 }
 
 void Message::Attribute::set_reason(const char* value, size_t length) noexcept {
   assert(type == type_t::REASON);
-  this->length = length;
-  if (this->length > SBCP_MAX_REASON_LENGTH) {
-    this->length = SBCP_MAX_REASON_LENGTH;
+  this->length = htons(length);
+  if (length > SBCP_MAX_REASON_LENGTH) {
+    this->length = htons(SBCP_MAX_REASON_LENGTH);
   }
-  memcpy(payload.reason, value, this->length);
+  memcpy(payload.reason, value, length);
 }
 
 void Message::Attribute::set_client_count(
     payload_t::client_count_t value) noexcept {
   assert(type == type_t::CLIENT_COUNT);
-  this->length = sizeof(payload_t::client_count_t);
-  payload.client_count = value;
+  this->length = htons(sizeof(payload_t::client_count_t));
+  payload.client_count = htons(value);
 }
 
 void Message::validate() const {
@@ -120,19 +121,19 @@ void Message::validate() const {
   switch (header.get_type()) {
     case message_type_t::JOIN:
       // can only have one username attribute
-      if (header.length > attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
+      if (header.get_length() > attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
         throw MessageException("JOIN message should not have payload");
       }
       break;
     case message_type_t::SEND:
       // can only have one message attribute
-      if (header.length > attribute_header_size + SBCP_MAX_MESSAGE_LENGTH) {
+      if (header.get_length() > attribute_header_size + SBCP_MAX_MESSAGE_LENGTH) {
         throw MessageException("SEND message payload overflow");
       }
       break;
     case message_type_t::FWD:
       // can only have one username and one message attribute
-      if (header.length > 2 * (attribute_header_size) +
+      if (header.get_length() > 2 * (attribute_header_size) +
                               SBCP_MAX_USERNAME_LENGTH +
                               SBCP_MAX_MESSAGE_LENGTH) {
         throw MessageException("FWD message should have username and message");
@@ -140,31 +141,31 @@ void Message::validate() const {
       break;
     case message_type_t::IDLE:
       // can only have one username attribute
-      if (header.length > attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
+      if (header.get_length() > attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
         throw MessageException("IDLE message should have only username");
       }
       break;
     case message_type_t::ACK:
       // can have many username attributes and client count
-      if (header.length > SBCP_MAX_PAYLOAD_LENGTH) {
+      if (header.get_length() > SBCP_MAX_PAYLOAD_LENGTH) {
         throw MessageException("ACK message size overflow");
       }
       break;
     case message_type_t::NAK:
       // can only have one reason attribute
-      if (header.length > attribute_header_size + SBCP_MAX_REASON_LENGTH) {
+      if (header.get_length() > attribute_header_size + SBCP_MAX_REASON_LENGTH) {
         throw MessageException("NAK message should have only reason attribute");
       }
       break;
     case message_type_t::ONLINE:
       // can have many username attributes
-      if (header.length > SBCP_MAX_PAYLOAD_LENGTH) {
+      if (header.get_length() > SBCP_MAX_PAYLOAD_LENGTH) {
         throw MessageException("ONLINE message size overflow");
       }
       break;
     case message_type_t::OFFLINE:
       // can have many username attributes
-      if (header.length > SBCP_MAX_PAYLOAD_LENGTH) {
+      if (header.get_length() > SBCP_MAX_PAYLOAD_LENGTH) {
         throw MessageException("OFFLINE message size overflow");
       }
       break;
@@ -181,11 +182,11 @@ void Message::validate_version() const {
 
 void Message::add_attribute(const attribute_t& attr) {
   validate();
-  if (header.length + attr.size() > SBCP_MAX_PAYLOAD_LENGTH) {
+  if (header.get_length() + attr.size() > SBCP_MAX_PAYLOAD_LENGTH) {
     throw MessageException("Payload length exceeds maximum length");
   }
-  memcpy(payload + header.length, &attr, attr.size());
-  header.length += attr.size();
+  memcpy(payload + header.get_length(), &attr, attr.size());
+  header.set_length(header.get_length() + attr.size());
 }
 
 void Message::add_attribute(attribute_t::type_t type, const char* value,
@@ -304,7 +305,7 @@ const Message::attribute_t& Message::operator[](size_t idx) const {
     }
     offset += attr->size();
     --idx;
-  } while (offset < header.length);
+  } while (offset < header.get_length());
   throw std::out_of_range("Index out of range");
 }
 
