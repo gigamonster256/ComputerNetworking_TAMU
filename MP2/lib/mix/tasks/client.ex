@@ -9,15 +9,24 @@ defmodule Mix.Tasks.Client do
     {:ok, header} = TCPClient.receive_data(socket, 4)
     header = SbcpMessage.Header.deserialize(header)
     {:ok, payload} = TCPClient.receive_data(socket, header.length)
-    message = payload |> SbcpMessage.deserialize(header)
+    message = SbcpMessage.deserialize(header, payload)
 
     case message.header.type do
       :ack ->
         IO.puts("Join successful as #{username}")
+        online_users = message |> SbcpMessage.usernames()
+        user_count = message |> SbcpMessage.client_count()
+
+        case user_count do
+          1 -> IO.puts("You are the only user online")
+          _ -> IO.puts("Online users: #{online_users |> Enum.join(", ")}")
+        end
 
       :nak ->
-        message = message |> SbcpMessage.reason() |> to_string()
-        IO.puts("Join failed: #{message}")
+        reason = message |> SbcpMessage.reason()
+        IO.puts("Join failed: #{reason}")
+        TCPClient.close(socket)
+        exit(:nak)
     end
 
     message = "Hello from elixir" |> SbcpMessage.message_message() |> SbcpMessage.serialize()
