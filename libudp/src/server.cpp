@@ -130,7 +130,7 @@ pid_t Server::start() {
   if (port_no == 0) {
     throw ConfigurationError("Port number not set");
   }
-  if (client_handler.handlers.size() == 0) {
+  if (client_handler.handlers.empty()) {
     throw ConfigurationError("No client handlers set");
   }
   if (client_handler.max_clients == 0) {
@@ -195,7 +195,7 @@ void Server::run_server() {
     }
   }
 
-  if (bind(server_sock_fd, (struct sockaddr*)&server_addr,
+  if (bind(server_sock_fd, reinterpret_cast<sockaddr*>(&server_addr),
            sizeof(server_addr)) < 0) {
     perror("UDPServer bind");
     close(server_sock_fd);
@@ -223,7 +223,7 @@ void Server::run_server() {
                 timeout);
       }
 
-      int ret = select(server_sock_fd + 1, &read_fds, NULL, NULL, &tv);
+      int ret = select(server_sock_fd + 1, &read_fds, nullptr, nullptr, &tv);
       if (ret < 0) {
         perror("UDPServer select");
         if (errno == EINTR) {
@@ -397,7 +397,7 @@ void Server::ClientHandler::accept(int server_sock_fd) {
   char* first_packet = new char[initial_packet_buffer_size];
   ssize_t len =
       recvfrom(server_sock_fd, first_packet, initial_packet_buffer_size, 0,
-               (struct sockaddr*)&client_addr, &client_addr_len);
+               reinterpret_cast<sockaddr*>(&client_addr), &client_addr_len);
   if (len < 0) {
     perror("UDPServer recvfrom");
     return;

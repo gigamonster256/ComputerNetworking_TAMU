@@ -17,7 +17,7 @@ class Client {
   ~Client();
 
   // passthrough I/O (sets errno on error)
-  ssize_t write(void* msgbuf, size_t maxlen);
+  ssize_t write(const void* msgbuf, size_t maxlen);
   ssize_t read(void* msgbuf, size_t maxlen);
 
   // get the file descriptor

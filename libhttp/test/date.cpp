@@ -9,7 +9,7 @@
 using namespace http;
 
 int main() {
-  time_t t = time(0);
+  time_t t = time(nullptr);
   struct tm* now_tm = gmtime(&t);
   char buffer[128];
 

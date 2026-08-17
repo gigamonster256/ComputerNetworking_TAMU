@@ -34,7 +34,7 @@ class Message {
   const Header* get_header(const std::string& name);
   Message& set_body(const std::string& body);
 
-  const std::string to_string() const;
+  std::string to_string() const;
   const HeaderList& get_headers() const { return headers; }
   const std::optional<std::string>& get_body() const { return body; }
   const StatusCode& get_status_code() const;

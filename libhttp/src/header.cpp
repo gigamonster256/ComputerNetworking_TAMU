@@ -16,9 +16,15 @@ enum class Header::HeaderType {
   Unknown,
 };
 Header::HeaderType Header::get_header_type(const std::string& name) {
-  if (name == "Date") return HeaderType::Date;
-  if (name == "Expires") return HeaderType::Expires;
-  if (name == "Last-Modified") return HeaderType::LastModified;
+  if (name == "Date") {
+    return HeaderType::Date;
+  }
+  if (name == "Expires") {
+    return HeaderType::Expires;
+  }
+  if (name == "Last-Modified") {
+    return HeaderType::LastModified;
+  }
   return HeaderType::Unknown;
 }
 

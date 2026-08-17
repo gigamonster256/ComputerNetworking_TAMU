@@ -63,7 +63,7 @@ Message& Message::set_body(const std::string& body) {
   return *this;
 }
 
-const std::string Message::to_string() const {
+std::string Message::to_string() const {
   std::string message =
       std::visit([](const auto& first_line) { return first_line.to_string(); },
                  first_line);

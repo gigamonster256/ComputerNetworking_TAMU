@@ -15,9 +15,15 @@ Method::Method(const std::string& method) : type(get_method_type(method)) {
 }
 
 MethodType Method::get_method_type(const std::string& method) {
-  if (method == "GET") return MethodType::GET;
-  if (method == "HEAD") return MethodType::HEAD;
-  if (method == "POST") return MethodType::POST;
+  if (method == "GET") {
+    return MethodType::GET;
+  }
+  if (method == "HEAD") {
+    return MethodType::HEAD;
+  }
+  if (method == "POST") {
+    return MethodType::POST;
+  }
   return MethodType::EXTENSION;
 }
 
@@ -37,7 +43,7 @@ std::string Method::to_string() const {
 const Method Method::GET = Method("GET");
 const Method Method::HEAD = Method("HEAD");
 const Method Method::POST = Method("POST");
-const Method Method::EXTENSION(const std::string& extension) {
+Method Method::EXTENSION(const std::string& extension) {
   return Method(extension);
 }
 
@@ -67,7 +73,7 @@ std::string RequestLine::to_string() const {
   return method.to_string() + " " + uri.to_string() + " " + version.to_string();
 }
 
-const RequestLine RequestLine::GET(const std::string& uri) {
+RequestLine RequestLine::GET(const std::string& uri) {
   return RequestLine("GET " + uri + " " + HTTPVersion::HTTP_1_0.to_string());
 }
 

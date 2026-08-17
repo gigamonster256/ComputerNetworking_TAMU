@@ -34,7 +34,7 @@ class Method {
   static const Method GET;
   static const Method HEAD;
   static const Method POST;
-  static const Method EXTENSION(const std::string& extension);
+  static Method EXTENSION(const std::string& extension);
 };
 
 // HTTP-Version = "HTTP" "/" 1*DIGIT "." 1*DIGIT

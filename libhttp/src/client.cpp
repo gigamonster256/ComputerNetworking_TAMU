@@ -22,7 +22,7 @@ std::unique_ptr<Message> Client::get(const std::string& rel_path,
 
   tcp::Client client(host.c_str(), port);
   std::string request_str = request.to_string();
-  client.writen((void*)request_str.c_str(), request_str.size());
+  client.writen(request_str.c_str(), request_str.size());
 
   std::string response_str;
   char buffer[1024];

@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
               auto response = std::make_unique<http::Message>(
                   StatusCode(StatusCodeEnum::NOT_MODIFIED));
               auto response_str = response->to_string();
-              client->writen((void*)response_str.c_str(), response_str.size());
+              client->writen(response_str.c_str(), response_str.size());
               return;
             } else {
               goto normal_response;
@@ -184,7 +184,7 @@ int main(int argc, char* argv[]) {
           normal_response:
             auto response = route->second();
             auto response_str = response->to_string();
-            client->writen((void*)response_str.c_str(), response_str.size());
+            client->writen(response_str.c_str(), response_str.size());
           }
         }
         // 404 if the route is not found
@@ -193,7 +193,7 @@ int main(int argc, char* argv[]) {
           auto response = std::make_unique<http::Message>(
               StatusCode(StatusCodeEnum::NOT_FOUND));
           auto response_str = response->to_string();
-          client->writen((void*)response_str.c_str(), response_str.size());
+          client->writen(response_str.c_str(), response_str.size());
         }
       })
       .exec();

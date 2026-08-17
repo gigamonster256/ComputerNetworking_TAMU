@@ -29,7 +29,7 @@ void usage(const char* progname) {
 }
 
 ssize_t read_message(int fd, message_t* message) {
-  auto r = read(fd, (void*)message->data(), sizeof(message_t::header_t));
+  auto r = read(fd, message->data(), sizeof(message_t::header_t));
   if (r == 0) {
     return 0;
   }
@@ -40,7 +40,7 @@ ssize_t read_message(int fd, message_t* message) {
     std::cerr << "Invalid message: " << e.what() << std::endl;
     return -1;
   }
-  auto r2 = read(fd, (void*)(message->data() + sizeof(message_t::header_t)),
+  auto r2 = read(fd, message->data() + sizeof(message_t::header_t),
                  message->get_length());
   assert(r2 == message->get_length());
   return r + r2;
@@ -67,7 +67,7 @@ void client_handler(tcp::Client* client, void* extra_data) {
 
   // extra_data is the pipe created in main
   // used for bootstrapping the handler - main communication channel
-  int* fds = (int*)extra_data;
+  int* fds = static_cast<int*>(extra_data);
   int bootstrap_fd = fds[1];
   // close read end of pipe
   close(fds[0]);
@@ -87,8 +87,8 @@ void client_handler(tcp::Client* client, void* extra_data) {
     if (main_fd >= 0) {
       FD_SET(main_fd, &readfds);
     }
-    int ready = select(std::max(client->get_fd(), main_fd) + 1, &readfds, NULL,
-                       NULL, NULL);
+    int ready = select(std::max(client->get_fd(), main_fd) + 1, &readfds,
+                       nullptr, nullptr, nullptr);
     if (ready < 0) {
       perror("Handler select");
       if (errno == EINTR) {
@@ -135,14 +135,16 @@ void client_handler(tcp::Client* client, void* extra_data) {
           auto username = message.get_username();
           std::cerr << "Handler bootstrapping for " << username << std::endl;
           struct bootstrap_message bootstrap(
-              {pid, (uint8_t)username.size(), {}});
-          strcpy(bootstrap.username, username.c_str());
-          ssize_t r = write(bootstrap_fd, (void*)&bootstrap, sizeof(bootstrap));
+              {pid, static_cast<uint8_t>(username.size()), {}});
+          auto username_len =
+              username.copy(bootstrap.username, sizeof(bootstrap.username) - 1);
+          bootstrap.username[username_len] = '\0';
+          ssize_t r = write(bootstrap_fd, &bootstrap, sizeof(bootstrap));
           if (r < 0) {
             perror("Handler write bootstrap");
             return;
           }
-          if ((size_t)r != sizeof(bootstrap)) {
+          if (static_cast<size_t>(r) != sizeof(bootstrap)) {
             std::cerr << "Handler wrote " << r << " bytes, expected "
                       << sizeof(bootstrap) << std::endl;
             return;
@@ -196,7 +198,7 @@ void client_handler(tcp::Client* client, void* extra_data) {
             perror("Handler write to main");
             continue;
           }
-          if ((size_t)r != message.size()) {
+          if (static_cast<size_t>(r) != message.size()) {
             std::cerr << "Handler wrote " << r << " bytes, expected "
                       << message.size() << std::endl;
           }
@@ -231,7 +233,7 @@ void client_handler(tcp::Client* client, void* extra_data) {
       std::cerr << "Forwarding message to client" << std::endl;
 
       // send message to client
-      client->write((void*)message.data(), message.size());
+      client->write(message.data(), message.size());
     } else {
       std::cerr << "Should not get here" << std::endl;
       assert(false);
@@ -262,7 +264,7 @@ void write_all(std::map<std::string, int>& fifos, const message_t& message) {
     if (r < 0) {
       perror("write_all");
     }
-    if ((size_t)r != message.size()) {
+    if (static_cast<size_t>(r) != message.size()) {
       std::cerr << "write_all wrote " << r << " bytes, expected "
                 << message.size() << std::endl;
     }
@@ -277,7 +279,7 @@ void write_all_except(std::map<std::string, int>& fifos,
       if (r < 0) {
         perror("write_all_except");
       }
-      if ((size_t)r != message.size()) {
+      if (static_cast<size_t>(r) != message.size()) {
         std::cerr << "write_all_except wrote " << r << " bytes, expected "
                   << message.size() << std::endl;
       }
@@ -308,7 +310,7 @@ int main(int argc, char* argv[]) {
   // make temp dir
   char temp[] = "/tmp/sbcp_XXXXXX";
   temp_dir = mkdtemp(temp);
-  if (temp_dir == NULL) {
+  if (temp_dir == nullptr) {
     perror("mkdtemp");
     exit(EXIT_FAILURE);
   }
@@ -321,7 +323,7 @@ int main(int argc, char* argv[]) {
                  .set_max_clients(max_clients + num_extra_clients)
                  .set_timeout_handler(timeout_handler)
                  // give write end of pipe to clients
-                 .add_handler_extra_data((void*)pipefd)
+                 .add_handler_extra_data(pipefd)
                  //  .debug(true)
                  .start();
   std::cerr << "Server started with pid: " << pid << std::endl;
@@ -344,7 +346,7 @@ int main(int argc, char* argv[]) {
       FD_SET(pair.second, &readfds);
       max_fd = std::max(max_fd, pair.second);
     }
-    int ready = select(max_fd + 1, &readfds, NULL, NULL, NULL);
+    int ready = select(max_fd + 1, &readfds, nullptr, nullptr, nullptr);
     if (ready < 0) {
       perror("select");
       exit(EXIT_FAILURE);
@@ -353,7 +355,7 @@ int main(int argc, char* argv[]) {
     // client joining
     if (FD_ISSET(pipefd[0], &readfds)) {
       struct bootstrap_message message;
-      auto n = read(pipefd[0], (void*)&message, sizeof(message));
+      auto n = read(pipefd[0], &message, sizeof(message));
       if (n == 0) {
         // server closed the pipe
         std::cerr << "Server closed the pipe... Something went seriously wrong"
@@ -394,7 +396,7 @@ int main(int argc, char* argv[]) {
         if (r < 0) {
           perror("write");
         }
-        if ((size_t)r != nak.size()) {
+        if (static_cast<size_t>(r) != nak.size()) {
           std::cerr << "Main wrote " << r << " bytes, expected " << nak.size()
                     << std::endl;
         }
@@ -412,7 +414,7 @@ int main(int argc, char* argv[]) {
         if (r < 0) {
           perror("write");
         }
-        if ((size_t)r != nak.size()) {
+        if (static_cast<size_t>(r) != nak.size()) {
           std::cerr << "Main wrote " << r << " bytes, expected " << nak.size()
                     << std::endl;
         }
@@ -434,7 +436,7 @@ int main(int argc, char* argv[]) {
       if (r < 0) {
         perror("write");
       }
-      if ((size_t)r != ack.size()) {
+      if (static_cast<size_t>(r) != ack.size()) {
         std::cerr << "Main wrote " << r << " bytes, expected " << ack.size()
                   << std::endl;
       }

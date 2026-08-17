@@ -22,7 +22,7 @@ class RequestLine {
   MethodType get_method_type() const { return method.get_type(); }
   std::string get_uri() const { return uri.to_string(); }
 
-  static const RequestLine GET(const std::string& uri);
+  static RequestLine GET(const std::string& uri);
 };
 
 }  // namespace http

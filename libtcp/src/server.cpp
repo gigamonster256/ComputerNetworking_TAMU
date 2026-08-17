@@ -144,7 +144,7 @@ pid_t Server::start() {
   if (backlog == 0) {
     throw ConfigurationError("Backlog not set");
   }
-  if (client_handler.handlers.size() == 0) {
+  if (client_handler.handlers.empty()) {
     throw ConfigurationError("No client handlers set");
   }
   if (client_handler.max_clients == 0) {
@@ -220,7 +220,7 @@ void Server::run_server() {
     }
   }
 
-  if (bind(server_sock_fd, (struct sockaddr*)&server_addr,
+  if (bind(server_sock_fd, reinterpret_cast<sockaddr*>(&server_addr),
            sizeof(server_addr)) < 0) {
     perror("TCPServer bind");
     close(server_sock_fd);
@@ -254,7 +254,7 @@ void Server::run_server() {
                 timeout);
       }
 
-      int ret = select(server_sock_fd + 1, &read_fds, NULL, NULL, &tv);
+      int ret = select(server_sock_fd + 1, &read_fds, nullptr, nullptr, &tv);
       if (ret < 0) {
         perror("TCPServer select");
         if (errno == EINTR) {
@@ -425,8 +425,9 @@ void Server::ClientHandler::accept(int server_sock_fd) {
 
   struct sockaddr_in6 client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
-  int client_sock_fd = ::accept(server_sock_fd, (struct sockaddr*)&client_addr,
-                                &client_addr_len);
+  int client_sock_fd =
+      ::accept(server_sock_fd, reinterpret_cast<sockaddr*>(&client_addr),
+               &client_addr_len);
   if (client_sock_fd < 0) {
     perror("TCPClientHandler accept");
     return;

@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
             // update the last used time
             std::get<0>(entry) = now;
             auto response_str = std::get<2>(entry)->to_string();
-            client->writen((void*)response_str.c_str(), response_str.size());
+            client->writen(response_str.c_str(), response_str.size());
             return;
           }
           // stale cache entry -- make a conditional get
@@ -179,7 +179,7 @@ int main(int argc, char* argv[]) {
           std::get<0>(entry) = now;
           // write the response back to the client
           auto response_str = std::get<2>(entry)->to_string();
-          client->writen((void*)response_str.c_str(), response_str.size());
+          client->writen(response_str.c_str(), response_str.size());
           return;
         }
 
@@ -226,7 +226,7 @@ int main(int argc, char* argv[]) {
 
         // write the response back to the client
         auto response_str = response->to_string();
-        client->writen((void*)response_str.c_str(), response_str.size());
+        client->writen(response_str.c_str(), response_str.size());
 
         // if cache has 11 entries, remove the oldest one
         if (cache->size() >= 10) {

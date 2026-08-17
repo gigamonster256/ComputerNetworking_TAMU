@@ -51,7 +51,7 @@ typedef class Message {
 
    public:
     explicit constexpr Attribute(type_t type) noexcept
-        : type(type), length(htons(0)), payload() {}
+        : type(type), length(0), payload() {}
     explicit Attribute(type_t, const char*);
     explicit Attribute(type_t, const char*, size_t);
     explicit Attribute(type_t, payload_t::client_count_t);
@@ -149,6 +149,7 @@ typedef class Message {
   type_t constexpr get_type() const noexcept { return header.get_type(); }
   length_t constexpr get_length() const noexcept { return header.get_length(); }
   size_t size() const noexcept { return sizeof(header) + header.get_length(); }
+  char* data() noexcept { return reinterpret_cast<char*>(this); }
   const char* data() const noexcept {
     return reinterpret_cast<const char*>(this);
   }

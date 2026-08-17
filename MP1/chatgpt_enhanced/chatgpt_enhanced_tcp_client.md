@@ -74,7 +74,7 @@ Here are several improvements to the TCP client code along with explanations for
    - **Improvement**: Check for partial reads/writes and handle them properly in a loop until all data is read or written.
 
    ```cpp
-   ssize_t TCPClient::writen(void *msgbuf, size_t len) {
+   ssize_t TCPClient::writen(const void *msgbuf, size_t len) {
        size_t total_written = 0;
        while (total_written < len) {
            ssize_t n_written = ::write(sockfd, (char *)msgbuf + total_written, len - total_written);
