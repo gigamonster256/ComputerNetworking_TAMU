@@ -15,7 +15,6 @@
       forEachSystem = f: lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
     in
     {
-      formatter = forEachSystem (pkgs: pkgs.nixfmt-tree);
       packages = forEachSystem (
         pkgs:
         let
@@ -34,5 +33,25 @@
       devShells = forEachSystem (pkgs: {
         default = import ./shell.nix { inherit pkgs; };
       });
+      formatter = forEachSystem (
+        pkgs:
+        pkgs.writeShellApplication {
+          name = "computer-networking-formatter";
+
+          runtimeInputs = [
+            pkgs.fd
+            pkgs.nixfmt
+            pkgs.clang-tools
+          ];
+
+          text = ''
+            # Format Nix with Nixfmt
+            fd "$@" -t f -e nix -x nixfmt -q '{}'
+
+            # Format C/C++ with ClangFormat
+            fd "$@" -t f -e c -e cpp -e h -e hpp -x clang-format -i '{}'
+          '';
+        }
+      );
     };
 }

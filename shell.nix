@@ -1,4 +1,8 @@
 {
   pkgs ? import <nixpkgs> { },
 }:
-pkgs.mkShell { }
+pkgs.mkShell {
+  packages = [
+    pkgs.clang-tools
+  ];
+}
