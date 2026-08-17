@@ -30,6 +30,30 @@
           echo = pkgs.callPackage ./MP1/client.nix { inherit libtcp; };
         }
       );
+      checks = forEachSystem (
+        pkgs:
+        {
+          lint = pkgs.stdenv.mkDerivation {
+            name = "computer-networking-lint";
+
+            src = self;
+
+            nativeBuildInputs = [
+              pkgs.fd
+              pkgs.clang-tools
+            ];
+
+            doCheck = true;
+            checkPhase = ''
+              bash ./lint.sh
+            '';
+
+            installPhase = ''
+              mkdir -p $out
+            '';
+          };
+        }
+      );
       devShells = forEachSystem (pkgs: {
         default = import ./shell.nix { inherit pkgs; };
       });

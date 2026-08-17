@@ -1,5 +1,8 @@
-.PHONY: all clean
+.PHONY: all clean lint
 all:
+
+lint:
+	./lint.sh
 
 clean:
 	$(MAKE) -C libtcp clean
