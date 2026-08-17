@@ -1,12 +1,15 @@
-{ stdenv }:
+{ stdenv, libtcp }:
 stdenv.mkDerivation {
-  name = "echo";
-  src = ../.;
+  pname = "echo";
+  version = "0.1.0";
+  src = ./.;
+  buildInputs = [ libtcp ];
   buildPhase = ''
-    make -C MP1/src echo
+    make -C src echo LIBTCP=${libtcp}/lib/libtcp.a INCLUDE=-I${libtcp}/include
   '';
   installPhase = ''
     mkdir -p $out/bin
-    cp -r MP1/src/echo $out/bin
+    cp src/echo $out/bin
   '';
+  meta.mainProgram = "echo";
 }

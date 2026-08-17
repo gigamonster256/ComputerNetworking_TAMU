@@ -1,6 +1,8 @@
 #ifndef _SBCP_HPP_
 #define _SBCP_HPP_
 
+#include <arpa/inet.h>
+
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -114,13 +116,13 @@ typedef class Message {
           version_and_type_lower((version & 0x1) << 7 | type),
           length(htons(length)) {}
 
-    type_t get_type() const noexcept {
+    constexpr type_t get_type() const noexcept {
       return Type(version_and_type_lower & 0x7F);
     }
-    version_t get_version() const noexcept {
+    constexpr version_t get_version() const noexcept {
       return (version_and_type_upper << 1) | (version_and_type_lower >> 7);
     }
-    length_t get_length() const noexcept { return ntohs(length); }
+    constexpr length_t get_length() const noexcept { return ntohs(length); }
     void set_type(type_t type) noexcept {
       version_and_type_lower = (version_and_type_lower & 0x80) | type;
     }

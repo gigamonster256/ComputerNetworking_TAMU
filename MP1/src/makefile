@@ -1,8 +1,8 @@
 CXX ?= g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -Werror
 
-LIBTCP = ../../libtcp/libtcp.a
-INCLUDE = -I../../libtcp/include
+LIBTCP ?= ../../libtcp/libtcp.a
+INCLUDE ?= -I../../libtcp/include
 
 all: echos echo
 
