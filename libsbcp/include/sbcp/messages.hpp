@@ -42,4 +42,3 @@ const message_t IDLE(std::string username);
 const message_t IDLE();
 
 }  // namespace sbcp
-

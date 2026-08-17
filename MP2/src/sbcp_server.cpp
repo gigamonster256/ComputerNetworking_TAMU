@@ -22,36 +22,36 @@ struct bootstrap_message {
   char username[SBCP_MAX_USERNAME_LENGTH];
 };
 
-void usage(const char *progname) {
+void usage(const char* progname) {
   std::cerr << "Usage: " << progname << " <ip> <port> <max_clients>"
             << std::endl;
   exit(EXIT_FAILURE);
 }
 
-ssize_t read_message(int fd, message_t *message) {
-  auto r = read(fd, (void *)message->data(), sizeof(message_t::header_t));
+ssize_t read_message(int fd, message_t* message) {
+  auto r = read(fd, (void*)message->data(), sizeof(message_t::header_t));
   if (r == 0) {
     return 0;
   }
   assert(r == sizeof(message_t::header_t));
   try {
     message->validate();
-  } catch (MessageException &e) {
+  } catch (MessageException& e) {
     std::cerr << "Invalid message: " << e.what() << std::endl;
     return -1;
   }
-  auto r2 = read(fd, (void *)(message->data() + sizeof(message_t::header_t)),
+  auto r2 = read(fd, (void*)(message->data() + sizeof(message_t::header_t)),
                  message->get_length());
   assert(r2 == message->get_length());
   return r + r2;
 }
 
-ssize_t read_message(tcp::Client *client, message_t *message) {
+ssize_t read_message(tcp::Client* client, message_t* message) {
   return read_message(client->get_fd(), message);
 }
 
 // global temp dir set on server start
-char *temp_dir;
+char* temp_dir;
 
 std::string main_fifo_name(pid_t pid) {
   return temp_dir + std::string("/") + std::to_string(pid) + "_main";
@@ -61,13 +61,13 @@ std::string handler_fifo_name(pid_t pid) {
   return temp_dir + std::string("/") + std::to_string(pid) + "_handler";
 }
 
-void client_handler(tcp::Client *client, void *extra_data) {
+void client_handler(tcp::Client* client, void* extra_data) {
   fprintf(stderr, "Handler started\n");
   std::cerr << "Peer: " << client->peer_ip() << std::endl;
 
   // extra_data is the pipe created in main
   // used for bootstrapping the handler - main communication channel
-  int *fds = (int *)extra_data;
+  int* fds = (int*)extra_data;
   int bootstrap_fd = fds[1];
   // close read end of pipe
   close(fds[0]);
@@ -137,7 +137,7 @@ void client_handler(tcp::Client *client, void *extra_data) {
           struct bootstrap_message bootstrap(
               {pid, (uint8_t)username.size(), {}});
           strcpy(bootstrap.username, username.c_str());
-          ssize_t r = write(bootstrap_fd, (void *)&bootstrap, sizeof(bootstrap));
+          ssize_t r = write(bootstrap_fd, (void*)&bootstrap, sizeof(bootstrap));
           if (r < 0) {
             perror("Handler write bootstrap");
             return;
@@ -231,7 +231,7 @@ void client_handler(tcp::Client *client, void *extra_data) {
       std::cerr << "Forwarding message to client" << std::endl;
 
       // send message to client
-      client->write((void *)message.data(), message.size());
+      client->write((void*)message.data(), message.size());
     } else {
       std::cerr << "Should not get here" << std::endl;
       assert(false);
@@ -256,8 +256,8 @@ void timeout_handler() {
   //   fprintf(stderr, "No client in the last timeout interval\n");
 }
 
-void write_all(std::map<std::string, int> &fifos, const message_t &message) {
-  for (auto &pair : fifos) {
+void write_all(std::map<std::string, int>& fifos, const message_t& message) {
+  for (auto& pair : fifos) {
     ssize_t r = write(pair.second, message.data(), message.size());
     if (r < 0) {
       perror("write_all");
@@ -269,9 +269,9 @@ void write_all(std::map<std::string, int> &fifos, const message_t &message) {
   }
 }
 
-void write_all_except(std::map<std::string, int> &fifos,
-                      const message_t &message, const std::string &username) {
-  for (auto &pair : fifos) {
+void write_all_except(std::map<std::string, int>& fifos,
+                      const message_t& message, const std::string& username) {
+  for (auto& pair : fifos) {
     if (pair.first != username) {
       ssize_t r = write(pair.second, message.data(), message.size());
       if (r < 0) {
@@ -285,12 +285,12 @@ void write_all_except(std::map<std::string, int> &fifos,
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (argc != 4) {
     usage(argv[0]);
   }
 
-  const char *ip = argv[1];
+  const char* ip = argv[1];
   unsigned int port = atoi(argv[2]);
   unsigned int max_clients = atoi(argv[3]);
   unsigned int num_extra_clients = 2;
@@ -321,7 +321,7 @@ int main(int argc, char *argv[]) {
                  .set_max_clients(max_clients + num_extra_clients)
                  .set_timeout_handler(timeout_handler)
                  // give write end of pipe to clients
-                 .add_handler_extra_data((void *)pipefd)
+                 .add_handler_extra_data((void*)pipefd)
                  //  .debug(true)
                  .start();
   std::cerr << "Server started with pid: " << pid << std::endl;
@@ -340,7 +340,7 @@ int main(int argc, char *argv[]) {
     FD_ZERO(&readfds);
     FD_SET(pipefd[0], &readfds);
     int max_fd = pipefd[0];
-    for (auto &pair : rd_fifos) {
+    for (auto& pair : rd_fifos) {
       FD_SET(pair.second, &readfds);
       max_fd = std::max(max_fd, pair.second);
     }
@@ -353,7 +353,7 @@ int main(int argc, char *argv[]) {
     // client joining
     if (FD_ISSET(pipefd[0], &readfds)) {
       struct bootstrap_message message;
-      auto n = read(pipefd[0], (void *)&message, sizeof(message));
+      auto n = read(pipefd[0], (void*)&message, sizeof(message));
       if (n == 0) {
         // server closed the pipe
         std::cerr << "Server closed the pipe... Something went seriously wrong"
@@ -447,7 +447,7 @@ int main(int argc, char *argv[]) {
     }
     // extablished clients
     else {
-      for (auto &pair : rd_fifos) {
+      for (auto& pair : rd_fifos) {
         if (FD_ISSET(pair.second, &readfds)) {
           auto username = pair.first;
           message_t message;

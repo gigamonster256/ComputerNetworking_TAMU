@@ -56,7 +56,8 @@ class StatusLine {
  public:
   StatusLine() = default;
   StatusLine(const std::string& status_line);
-  StatusLine(const StatusCode& code, const HTTPVersion& version = HTTPVersion::HTTP_1_0,
+  StatusLine(const StatusCode& code,
+             const HTTPVersion& version = HTTPVersion::HTTP_1_0,
              const std::optional<std::string>& reason = std::nullopt);
 
   std::string to_string() const;

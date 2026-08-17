@@ -8,13 +8,13 @@
 
 #define BUFFER_SIZE 1024
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (argc != 3) {
     std::cerr << "Usage: echo <IPAdr> <Port>" << std::endl;
     return 1;
   }
 
-  const char *server_ip = argv[1];
+  const char* server_ip = argv[1];
   int port = std::stoi(argv[2]);
 
   int client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (connect(client_socket, (sockaddr *)&server_addr, sizeof(server_addr)) <
+  if (connect(client_socket, (sockaddr*)&server_addr, sizeof(server_addr)) <
       0) {
     perror("Connection failed");
     return 1;

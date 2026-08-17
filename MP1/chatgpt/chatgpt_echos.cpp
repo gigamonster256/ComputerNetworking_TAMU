@@ -20,7 +20,7 @@ void handle_client(int client_socket) {
   exit(0);               // End the child process
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (argc != 2) {
     std::cerr << "Usage: echos <Port>" << std::endl;
     return 1;
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
   server_addr.sin_addr.s_addr = INADDR_ANY;
   server_addr.sin_port = htons(port);
 
-  if (bind(server_socket, (sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+  if (bind(server_socket, (sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
     perror("Bind failed");
     return 1;
   }
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
     sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     int client_socket =
-        accept(server_socket, (sockaddr *)&client_addr, &client_len);
+        accept(server_socket, (sockaddr*)&client_addr, &client_len);
 
     if (client_socket < 0) {
       perror("Accept failed");

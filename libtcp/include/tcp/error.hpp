@@ -12,4 +12,3 @@ class ConfigurationError : public std::runtime_error {
 };
 
 }  // namespace tcp
-

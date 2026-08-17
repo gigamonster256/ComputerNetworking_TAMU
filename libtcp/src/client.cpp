@@ -19,7 +19,7 @@ Client::Client(int sockfd, sockaddr_in6 client_addr) : sockfd(sockfd) {
   }
 }
 
-Client::Client(const char *server, int port_no) {
+Client::Client(const char* server, int port_no) {
   // check if a hostname or ip address was provided
   if (server == nullptr) {
     fprintf(stderr, "TCPClient: no server provided\n");
@@ -48,7 +48,7 @@ Client::Client(const char *server, int port_no) {
   // get the address info if a hostname was provided
   if (is_hostname) {
     struct addrinfo hints;
-    struct addrinfo *result;
+    struct addrinfo* result;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -64,8 +64,7 @@ Client::Client(const char *server, int port_no) {
     // for now, only support IPv4
     char namebuf[INET_ADDRSTRLEN];
     if (result->ai_family == AF_INET) {
-      if (inet_ntop(AF_INET,
-                    &((struct sockaddr_in *)result->ai_addr)->sin_addr,
+      if (inet_ntop(AF_INET, &((struct sockaddr_in*)result->ai_addr)->sin_addr,
                     namebuf, sizeof(namebuf)) == NULL) {
         perror("TCPClient inet_ntop");
       }
@@ -102,7 +101,7 @@ Client::Client(const char *server, int port_no) {
     exit(EXIT_FAILURE);
   }
 
-  if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+  if (connect(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
     perror("TCPClient connect");
     exit(EXIT_FAILURE);
   }
@@ -114,10 +113,10 @@ Client::~Client() {
   }
 }
 
-ssize_t Client::writen(void *msgbuf, size_t len) {
+ssize_t Client::writen(void* msgbuf, size_t len) {
   size_t n = 0;
   while (n < len) {
-    ssize_t n_written = ::write(sockfd, (char *)msgbuf + n, len - n);
+    ssize_t n_written = ::write(sockfd, (char*)msgbuf + n, len - n);
     if (n_written < 0) {
       if (errno == EINTR) {
         continue;
@@ -129,10 +128,10 @@ ssize_t Client::writen(void *msgbuf, size_t len) {
   return n;
 }
 
-void Client::readn(void *msgbuf, size_t len) {
+void Client::readn(void* msgbuf, size_t len) {
   size_t n = 0;
   while (n < len) {
-    ssize_t n_read = ::read(sockfd, (char *)msgbuf + n, len - n);
+    ssize_t n_read = ::read(sockfd, (char*)msgbuf + n, len - n);
     if (n_read < 0) {
       if (errno == EINTR) {
         continue;
@@ -147,10 +146,10 @@ void Client::readn(void *msgbuf, size_t len) {
   }
 }
 
-size_t Client::readline(void *msgbuf, size_t maxlen) {
+size_t Client::readline(void* msgbuf, size_t maxlen) {
   size_t n_read = 0;
   while (n_read < maxlen - 1) {
-    ssize_t n = ::read(sockfd, (char *)msgbuf + n_read, 1);
+    ssize_t n = ::read(sockfd, (char*)msgbuf + n_read, 1);
     if (n < 0) {
       if (errno == EINTR) {
         continue;
@@ -161,22 +160,22 @@ size_t Client::readline(void *msgbuf, size_t maxlen) {
       break;
     }
     n_read += n;
-    if (((char *)msgbuf)[n_read - 1] == '\n') {
+    if (((char*)msgbuf)[n_read - 1] == '\n') {
       break;
     }
   }
   if (n_read == 0) {
     return 0;
   }
-  ((char *)msgbuf)[n_read] = '\0';
+  ((char*)msgbuf)[n_read] = '\0';
   return n_read;
 }
 
-ssize_t Client::write(void *msgbuf, size_t maxlen) {
+ssize_t Client::write(void* msgbuf, size_t maxlen) {
   return ::write(sockfd, msgbuf, maxlen);
 }
 
-ssize_t Client::read(void *msgbuf, size_t maxlen) {
+ssize_t Client::read(void* msgbuf, size_t maxlen) {
   return ::read(sockfd, msgbuf, maxlen);
 }
 

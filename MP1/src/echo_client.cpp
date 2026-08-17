@@ -8,17 +8,17 @@
 
 using namespace tcp;
 
-void usage(const char *progname) {
+void usage(const char* progname) {
   fprintf(stderr, "Usage: %s <server> <port>\n", progname);
   exit(1);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (argc != 3) {
     usage(argv[0]);
   }
 
-  const char *server = argv[1];
+  const char* server = argv[1];
   int port = atoi(argv[2]);
 
   Client client(server, port);

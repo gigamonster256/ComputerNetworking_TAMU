@@ -121,27 +121,30 @@ void Message::validate() const {
   switch (header.get_type()) {
     case message_type_t::JOIN:
       // can only have one username attribute
-      if (header.get_length() > attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
+      if (header.get_length() >
+          attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
         throw MessageException("JOIN message should not have payload");
       }
       break;
     case message_type_t::SEND:
       // can only have one message attribute
-      if (header.get_length() > attribute_header_size + SBCP_MAX_MESSAGE_LENGTH) {
+      if (header.get_length() >
+          attribute_header_size + SBCP_MAX_MESSAGE_LENGTH) {
         throw MessageException("SEND message payload overflow");
       }
       break;
     case message_type_t::FWD:
       // can only have one username and one message attribute
       if (header.get_length() > 2 * (attribute_header_size) +
-                              SBCP_MAX_USERNAME_LENGTH +
-                              SBCP_MAX_MESSAGE_LENGTH) {
+                                    SBCP_MAX_USERNAME_LENGTH +
+                                    SBCP_MAX_MESSAGE_LENGTH) {
         throw MessageException("FWD message should have username and message");
       }
       break;
     case message_type_t::IDLE:
       // can only have one username attribute
-      if (header.get_length() > attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
+      if (header.get_length() >
+          attribute_header_size + SBCP_MAX_USERNAME_LENGTH) {
         throw MessageException("IDLE message should have only username");
       }
       break;
@@ -153,7 +156,8 @@ void Message::validate() const {
       break;
     case message_type_t::NAK:
       // can only have one reason attribute
-      if (header.get_length() > attribute_header_size + SBCP_MAX_REASON_LENGTH) {
+      if (header.get_length() >
+          attribute_header_size + SBCP_MAX_REASON_LENGTH) {
         throw MessageException("NAK message should have only reason attribute");
       }
       break;

@@ -22,9 +22,9 @@ struct Client {
 };
 
 // Broadcast to all connected clients
-void broadcastMessage(const std::string &message,
-                      const std::vector<Client> &clients, int sender_fd) {
-  for (const auto &client : clients) {
+void broadcastMessage(const std::string& message,
+                      const std::vector<Client>& clients, int sender_fd) {
+  for (const auto& client : clients) {
     if (client.sockfd != sender_fd) {
       send(client.sockfd, message.c_str(), message.size(), 0);
     }
@@ -52,7 +52,7 @@ int main() {
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = INADDR_ANY;
   server_addr.sin_port = htons(PORT);
-  if (bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) <
+  if (bind(server_sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) <
       0) {
     perror("Bind failed");
     close(server_sock);
@@ -75,7 +75,7 @@ int main() {
     FD_ZERO(&read_fds);
     FD_SET(server_sock, &read_fds);
 
-    for (const auto &client : clients) {
+    for (const auto& client : clients) {
       FD_SET(client.sockfd, &read_fds);
       if (client.sockfd > max_fd) {
         max_fd = client.sockfd;
@@ -90,8 +90,7 @@ int main() {
 
     // Handle new connections
     if (FD_ISSET(server_sock, &read_fds)) {
-      new_sock =
-          accept(server_sock, (struct sockaddr *)&client_addr, &addr_len);
+      new_sock = accept(server_sock, (struct sockaddr*)&client_addr, &addr_len);
       if (new_sock < 0) {
         perror("Accept error");
         continue;

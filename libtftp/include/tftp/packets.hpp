@@ -20,4 +20,3 @@ const Packet ERROR(ErrorCode error_code, const char* error_message);
 const Packet ACK_from(const Packet& packet);
 
 }  // namespace tftp
-

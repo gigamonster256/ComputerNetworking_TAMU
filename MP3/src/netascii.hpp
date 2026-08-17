@@ -106,4 +106,3 @@ class NetasciitoUNIXStream : public std::istream {
  public:
   NetasciitoUNIXStream(std::istream& f) : std::istream(&buf), buf(f) {}
 };
-

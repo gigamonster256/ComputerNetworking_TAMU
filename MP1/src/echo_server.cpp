@@ -8,12 +8,12 @@
 
 using namespace tcp;
 
-void usage(const char *progname) {
+void usage(const char* progname) {
   fprintf(stderr, "Usage: %s <port>\n", progname);
   exit(EXIT_FAILURE);
 }
 
-void echo_handler(Client *client, void *) {
+void echo_handler(Client* client, void*) {
   char buffer[256];
   while (true) {
     ssize_t bytes_read = client->read(buffer, sizeof(buffer));
@@ -35,7 +35,7 @@ void echo_handler(Client *client, void *) {
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (argc != 2) {
     usage(argv[0]);
   }

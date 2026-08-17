@@ -12,7 +12,7 @@
 
 namespace udp {
 
-Client::Client(const struct sockaddr_in6 &client_addr) {
+Client::Client(const struct sockaddr_in6& client_addr) {
   connected_to_ephemeral_port = true;
   sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
   if (sockfd < 0) {
@@ -24,14 +24,14 @@ Client::Client(const struct sockaddr_in6 &client_addr) {
     perror("UDPClient inet_ntop");
   }
 
-  if (connect(sockfd, (struct sockaddr *)&client_addr, sizeof(client_addr)) <
+  if (connect(sockfd, (struct sockaddr*)&client_addr, sizeof(client_addr)) <
       0) {
     perror("UDPClient connect");
     exit(EXIT_FAILURE);
   }
 }
 
-Client::Client(const char *server, int port_no) {
+Client::Client(const char* server, int port_no) {
   // check if a hostname or ip address was provided
   if (server == nullptr) {
     fprintf(stderr, "UDPClient: no server provided\n");
@@ -60,7 +60,7 @@ Client::Client(const char *server, int port_no) {
   // get the address info if a hostname was provided
   if (is_hostname) {
     struct addrinfo hints;
-    struct addrinfo *result;
+    struct addrinfo* result;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET6;
     hints.ai_socktype = SOCK_DGRAM;
@@ -75,7 +75,7 @@ Client::Client(const char *server, int port_no) {
     // set the peer ip address to the first address in the list
     if (result->ai_family == AF_INET6) {
       if (inet_ntop(AF_INET6,
-                    &((struct sockaddr_in6 *)result->ai_addr)->sin6_addr,
+                    &((struct sockaddr_in6*)result->ai_addr)->sin6_addr,
                     peer_ip_addr, sizeof(peer_ip_addr)) == NULL) {
         perror("UDPClient inet_ntop");
       }
@@ -116,9 +116,9 @@ Client::~Client() {
   }
 }
 
-void Client::connect_to_ephemeral_port(const struct sockaddr_in6 &server_addr) {
+void Client::connect_to_ephemeral_port(const struct sockaddr_in6& server_addr) {
   // connect to the server's ephemeral port
-  if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) <
+  if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) <
       0) {
     perror("UDPClient connect");
     exit(EXIT_FAILURE);
@@ -130,12 +130,12 @@ void Client::connect_to_ephemeral_port(const struct sockaddr_in6 &server_addr) {
   connected_to_ephemeral_port = true;
 }
 
-ssize_t Client::write(void *msgbuf, size_t maxlen) {
+ssize_t Client::write(void* msgbuf, size_t maxlen) {
   ssize_t n_written;
   if (!connected_to_ephemeral_port) {
     // send to the server's well known port
     n_written = sendto(sockfd, msgbuf, maxlen, 0,
-                       (struct sockaddr *)&server_addr, sizeof(server_addr));
+                       (struct sockaddr*)&server_addr, sizeof(server_addr));
     if (n_written < 0) {
       perror("UDPClient sendto");
     }
@@ -145,14 +145,14 @@ ssize_t Client::write(void *msgbuf, size_t maxlen) {
   return n_written;
 }
 
-ssize_t Client::read(void *msgbuf, size_t maxlen) {
+ssize_t Client::read(void* msgbuf, size_t maxlen) {
   ssize_t n_read;
   if (!connected_to_ephemeral_port) {
     // read from the server's ephemeral port
     struct sockaddr_in6 server_addr;
     socklen_t server_addr_len = sizeof(server_addr);
-    n_read = recvfrom(sockfd, msgbuf, maxlen, 0,
-                      (struct sockaddr *)&server_addr, &server_addr_len);
+    n_read = recvfrom(sockfd, msgbuf, maxlen, 0, (struct sockaddr*)&server_addr,
+                      &server_addr_len);
     if (n_read < 0) {
       perror("UDPClient recvfrom");
     }

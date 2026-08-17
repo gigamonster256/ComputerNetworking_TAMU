@@ -164,4 +164,3 @@ class Packet {
 //               "Packet struct must be 516 bytes");
 
 }  // namespace tftp
-

@@ -21,4 +21,3 @@ class InvalidModeError : public TFTPError {
 };
 
 }  // namespace tftp
-

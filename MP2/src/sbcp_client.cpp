@@ -9,19 +9,19 @@
 
 using namespace sbcp;
 
-void usage(const char *progname) {
+void usage(const char* progname) {
   std::cerr << "Usage: " << progname << " <username> <server> <port>"
             << std::endl;
   exit(1);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (argc != 4) {
     usage(argv[0]);
   }
 
-  const char *username = argv[1];
-  const char *server = argv[2];
+  const char* username = argv[1];
+  const char* server = argv[2];
   int port = atoi(argv[3]);
 
   // connect to server
@@ -29,12 +29,12 @@ int main(int argc, char *argv[]) {
 
   // send JOIN message
   const message_t join_msg = JOIN(username);
-  client.writen((void *)join_msg.data(), join_msg.size());
+  client.writen((void*)join_msg.data(), join_msg.size());
   // we should get an ACK message
   // or a NAK message if the username is in use
   message_t server_response;
-  client.readn((void *)server_response.data(), sizeof(message_t::header_t));
-  client.readn((void *)(server_response.data() + sizeof(message_t::header_t)),
+  client.readn((void*)server_response.data(), sizeof(message_t::header_t));
+  client.readn((void*)(server_response.data() + sizeof(message_t::header_t)),
                server_response.get_length());
 
   // we're connected
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
               << std::endl;
     if (server_response.get_client_count() > 1) {
       std::cout << "Clients: ";
-      for (const auto &username : server_response.get_usernames()) {
+      for (const auto& username : server_response.get_usernames()) {
         std::cout << username << " ";
       }
       std::cout << std::endl;
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
         // std::cerr << "Idle for 10 seconds" << std::endl;
         // send IDLE message
         const message_t idle_msg = IDLE();
-        client.writen((void *)idle_msg.data(), idle_msg.size());
+        client.writen((void*)idle_msg.data(), idle_msg.size());
         idle = true;
       }
       continue;
@@ -116,14 +116,14 @@ int main(int argc, char *argv[]) {
     message_t msg;
     if (FD_ISSET(client.get_fd(), &readfds)) {
       // read from server
-      client.readn((void *)msg.data(), sizeof(message_t::header_t));
+      client.readn((void*)msg.data(), sizeof(message_t::header_t));
       try {
         msg.validate();
-      } catch (const MessageException &e) {
+      } catch (const MessageException& e) {
         std::cerr << e.what() << std::endl;
         continue;
       }
-      client.readn((void *)(msg.data() + sizeof(message_t::header_t)),
+      client.readn((void*)(msg.data() + sizeof(message_t::header_t)),
                    msg.get_length());
       if (msg.get_type() == message_t::Type::FWD) {
         std::cout << msg.get_username() << ": " << msg.get_message()
@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
           break;
         }
         const message_t msg = SEND(message);
-        client.writen((void *)msg.data(), msg.size());
+        client.writen((void*)msg.data(), msg.size());
       }
     displayed_prompt = false;
   }

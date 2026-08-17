@@ -11,5 +11,4 @@ class ConfigurationError : public std::runtime_error {
   ConfigurationError(const char* what_arg) : std::runtime_error(what_arg) {}
 };
 
-}  // namespace tcp
-
+}  // namespace udp

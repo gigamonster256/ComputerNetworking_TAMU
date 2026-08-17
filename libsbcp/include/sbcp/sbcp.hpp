@@ -1,7 +1,6 @@
 #pragma once
 
 #include <arpa/inet.h>
-
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -249,4 +248,3 @@ class MessageException : public std::runtime_error {
 };
 
 }  // namespace sbcp
-
