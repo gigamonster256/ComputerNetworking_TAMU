@@ -2,44 +2,23 @@
   "nodes": {
     "nixpkgs": {
       "locked": {
-        "lastModified": 1723556749,
-        "narHash": "sha256-+CHVZnTnIYRLYsARInHYoWkujzcRkLY/gXm3s5bE52o=",
+        "lastModified": 1786862985,
+        "narHash": "sha256-FBJRXmbGXiSUDvYEbfLYRkckayyZ6SK1UEqhCrIZ2Cs=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "4a92571f9207810b559c9eac203d1f4d79830073",
+        "rev": "e5bdc4a41d4c072fe1e3787eaa0320a384741d44",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-24.05",
+        "ref": "nixos-unstable",
         "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "personal-packages": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1729714136,
-        "narHash": "sha256-QOP+2Mx1rzZblvPUnyEoRrYzPlPuS+YTFmrEJT7iX0U=",
-        "owner": "gigamonster256",
-        "repo": "nur-packages",
-        "rev": "537794f6ce3280b6555995a80a232968d22cbdc5",
-        "type": "github"
-      },
-      "original": {
-        "owner": "gigamonster256",
-        "repo": "nur-packages",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs",
-        "personal-packages": "personal-packages"
+        "nixpkgs": "nixpkgs"
       }
     }
   },
