@@ -1,5 +1,4 @@
-#ifndef _TFTP_HPP_
-#define _TFTP_HPP_
+#pragma once
 
 #include <arpa/inet.h>
 
@@ -166,4 +165,3 @@ class Packet {
 
 }  // namespace tftp
 
-#endif

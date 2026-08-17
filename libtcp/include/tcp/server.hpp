@@ -1,5 +1,4 @@
-#ifndef _TCP_SERVER_HPP_
-#define _TCP_SERVER_HPP_
+#pragma once
 
 #include <vector>
 
@@ -119,4 +118,3 @@ class Server {
 
 }  // namespace tcp
 
-#endif

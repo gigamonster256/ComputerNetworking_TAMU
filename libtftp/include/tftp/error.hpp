@@ -1,5 +1,4 @@
-#ifndef _TFTP_ERROR_HPP_
-#define _TFTP_ERROR_HPP_
+#pragma once
 
 #include <stdexcept>
 #include <string>
@@ -23,4 +22,3 @@ class InvalidModeError : public TFTPError {
 
 }  // namespace tftp
 
-#endif  // _TFTP_ERROR_HPP_

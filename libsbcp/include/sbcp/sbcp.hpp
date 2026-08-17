@@ -1,5 +1,4 @@
-#ifndef _SBCP_HPP_
-#define _SBCP_HPP_
+#pragma once
 
 #include <arpa/inet.h>
 
@@ -251,4 +250,3 @@ class MessageException : public std::runtime_error {
 
 }  // namespace sbcp
 
-#endif

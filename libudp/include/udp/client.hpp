@@ -1,5 +1,4 @@
-#ifndef _UDP_CLIENT_HPP_
-#define _UDP_CLIENT_HPP_
+#pragma once
 
 #include <arpa/inet.h>
 
@@ -37,4 +36,3 @@ class Client {
 
 }  // namespace udp
 
-#endif

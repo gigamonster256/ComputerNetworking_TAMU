@@ -1,5 +1,4 @@
-#ifndef _TCP_CLIENT_HPP_
-#define _TCP_CLIENT_HPP_
+#pragma once
 
 #include <arpa/inet.h>
 
@@ -43,4 +42,3 @@ class Client {
 
 }  // namespace tcp
 
-#endif

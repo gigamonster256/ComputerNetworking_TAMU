@@ -1,5 +1,4 @@
-#ifndef _TFTP_MESSAGES_HPP_
-#define _TFTP_MESSAGES_HPP_
+#pragma once
 
 #include <stddef.h>
 
@@ -22,4 +21,3 @@ const Packet ACK_from(const Packet& packet);
 
 }  // namespace tftp
 
-#endif

@@ -1,5 +1,4 @@
-#ifndef _UDP_SERVER_HPP_
-#define _UDP_SERVER_HPP_
+#pragma once
 
 #include <vector>
 
@@ -117,4 +116,3 @@ class Server {
 
 }  // namespace udp
 
-#endif

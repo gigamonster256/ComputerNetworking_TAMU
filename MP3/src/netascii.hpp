@@ -1,5 +1,4 @@
-#ifndef __NETASCII_H__
-#define __NETASCII_H__
+#pragma once
 
 #include <fstream>
 #include <iostream>
@@ -108,4 +107,3 @@ class NetasciitoUNIXStream : public std::istream {
   NetasciitoUNIXStream(std::istream& f) : std::istream(&buf), buf(f) {}
 };
 
-#endif  // __NETASCII_H__

@@ -1,5 +1,4 @@
-#ifndef _SBCP_MESSAGES_HPP_
-#define _SBCP_MESSAGES_HPP_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -44,4 +43,3 @@ const message_t IDLE();
 
 }  // namespace sbcp
 
-#endif

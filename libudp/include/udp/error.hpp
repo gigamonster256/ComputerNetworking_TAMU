@@ -1,5 +1,4 @@
-#ifndef __UDP_ERROR_HPP__
-#define __UDP_ERROR_HPP__
+#pragma once
 
 #include <stdexcept>
 
@@ -14,4 +13,3 @@ class ConfigurationError : public std::runtime_error {
 
 }  // namespace tcp
 
-#endif
