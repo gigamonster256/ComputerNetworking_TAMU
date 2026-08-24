@@ -53,6 +53,10 @@
       });
       devShells = forEachSystem (pkgs: {
         default = import ./shell.nix { inherit pkgs; };
+        clang = import ./shell.nix {
+          inherit pkgs;
+          stdenv = pkgs.clangStdenv;
+        };
       });
       formatter = forEachSystem (
         pkgs:
