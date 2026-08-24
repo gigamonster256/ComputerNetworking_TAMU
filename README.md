@@ -15,10 +15,14 @@ Server command: `nix run .#sbcp_server <ip> <port> <max_clients>`
 Client command: `nix run .#sbcp_client <username> <server> <port>`
 
 ### MP3: Trivial File Transfer Protocol
-TBD
+TFTP server per [RFC 1350](https://www.rfc-editor.org/rfc/rfc1350) with netascii support  
+Server command: `nix run .#tftp_server` (serves on port 8080)
 
 ### MP4: Simple HTTP Proxy
-TBD
+HTTP client, proxy, and server built on `libhttp`  
+Client command: `nix run .#http_client <proxy> <port> <url>`  
+Proxy command: `nix run .#http_proxy <ip> <port>`  
+Server command: `nix run .#http_server <port>`
 
 ### MP5: Network Simulation
 TBD

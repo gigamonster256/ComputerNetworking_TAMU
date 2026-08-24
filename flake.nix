@@ -19,15 +19,47 @@
         pkgs:
         let
           libtcp = pkgs.callPackage ./libtcp { };
-        in
-        {
-          inherit libtcp;
           libsbcp = pkgs.callPackage ./libsbcp { };
           libudp = pkgs.callPackage ./libudp { };
           libtftp = pkgs.callPackage ./libtftp { };
           libhttp = pkgs.callPackage ./libhttp { inherit libtcp; };
+        in
+        {
+          inherit
+            libtcp
+            libsbcp
+            libudp
+            libtftp
+            libhttp
+            ;
+
+          # MP1: Echo server/client
           echos = pkgs.callPackage ./MP1/server.nix { inherit libtcp; };
           echo = pkgs.callPackage ./MP1/client.nix { inherit libtcp; };
+
+          # MP2: Simple Broadcast Chat Protocol
+          sbcp_server = pkgs.callPackage ./MP2/server.nix {
+            inherit libtcp libsbcp;
+          };
+          sbcp_client = pkgs.callPackage ./MP2/client.nix {
+            inherit libtcp libsbcp;
+          };
+
+          # MP3: Trivial File Transfer Protocol
+          tftp_server = pkgs.callPackage ./MP3/server.nix {
+            inherit libudp libtftp;
+          };
+
+          # MP4: Simple HTTP Proxy
+          http_client = pkgs.callPackage ./MP4/client.nix {
+            inherit libtcp libhttp;
+          };
+          http_proxy = pkgs.callPackage ./MP4/proxy.nix {
+            inherit libtcp libhttp;
+          };
+          http_server = pkgs.callPackage ./MP4/server.nix {
+            inherit libtcp libhttp;
+          };
         }
       );
       checks = forEachSystem (pkgs: {
