@@ -15,3 +15,4 @@ clean:
 	$(MAKE) -C MP2 clean
 	$(MAKE) -C MP3 clean
 	$(MAKE) -C MP4 clean
+	rm result

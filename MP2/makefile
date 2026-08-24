@@ -10,7 +10,7 @@ INCLUDE = -I$(LIBSBCP_INC) -I$(LIBTCP_INC)
 PREFIX ?= /usr/local
 DESTDIR ?=
 
-.PHONY: all clean install install-server install-client
+.PHONY: all clean install
 
 all: server client
 
@@ -25,12 +25,9 @@ client: src/sbcp_client.cpp $(LIBTCP) $(LIBSBCP)
 server: src/sbcp_server.cpp $(LIBTCP) $(LIBSBCP)
 	$(CXX) $(CXXFLAGS) -o server $(INCLUDE) src/sbcp_server.cpp $(LIBSBCP) $(LIBTCP)
 
-install: install-server install-client
-install-server: server
+install: server client
 	install -d $(DESTDIR)$(PREFIX)/bin
 	install -m 755 server $(DESTDIR)$(PREFIX)/bin/sbcp_server
-install-client: client
-	install -d $(DESTDIR)$(PREFIX)/bin
 	install -m 755 client $(DESTDIR)$(PREFIX)/bin/sbcp_client
 
 $(LIBTCP):

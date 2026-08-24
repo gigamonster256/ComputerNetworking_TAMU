@@ -16,7 +16,7 @@ endif
 PREFIX ?= /usr/local
 DESTDIR ?=
 
-.PHONY: all clean install install-server install-client install-proxy
+.PHONY: all clean install
 
 all: proxy client
 
@@ -35,15 +35,10 @@ proxy: src/http_proxy.cpp $(LIBTCP) $(LIBHTTP)
 server: src/http_server.cpp $(LIBTCP) $(LIBHTTP)
 	$(CXX) $(CXXFLAGS) -o server $(INCLUDE) src/http_server.cpp $(LIBHTTP) $(LIBTCP) $(LIBS)
 
-install: install-proxy install-client install-server
-install-client: client
-	install -d $(DESTDIR)$(PREFIX)/bin
-	install -m 755 client $(DESTDIR)$(PREFIX)/bin/http_client
-install-proxy: proxy
+install: proxy client server
 	install -d $(DESTDIR)$(PREFIX)/bin
 	install -m 755 proxy $(DESTDIR)$(PREFIX)/bin/http_proxy
-install-server: server
-	install -d $(DESTDIR)$(PREFIX)/bin
+	install -m 755 client $(DESTDIR)$(PREFIX)/bin/http_client
 	install -m 755 server $(DESTDIR)$(PREFIX)/bin/http_server
 
 $(LIBTCP):

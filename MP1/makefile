@@ -8,7 +8,7 @@ INCLUDE = -I$(LIBTCP_INC)
 PREFIX ?= /usr/local
 DESTDIR ?=
 
-.PHONY: all clean install install-echos install-echo
+.PHONY: all clean install
 
 all: echos echo
 
@@ -23,12 +23,9 @@ echos: src/echo_server.cpp $(LIBTCP)
 echo: src/echo_client.cpp $(LIBTCP)
 	$(CXX) $(CXXFLAGS) -o echo $(INCLUDE) src/echo_client.cpp $(LIBTCP)
 
-install: install-echos install-echo
-install-echos: echos
+install: echos echo
 	install -d $(DESTDIR)$(PREFIX)/bin
 	install -m 755 echos $(DESTDIR)$(PREFIX)/bin/echos
-install-echo: echo
-	install -d $(DESTDIR)$(PREFIX)/bin
 	install -m 755 echo $(DESTDIR)$(PREFIX)/bin/echo
 
 $(LIBTCP):

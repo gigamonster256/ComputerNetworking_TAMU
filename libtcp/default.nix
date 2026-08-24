@@ -1,12 +1,18 @@
 { stdenv }:
-stdenv.mkDerivation {
+stdenv.mkDerivation (finalAttrs: {
   pname = "libtcp";
   version = "0.1.0";
-  src = ../.;
-  buildPhase = ''
-    make -C libtcp MODE=both
-  '';
-  installPhase = ''
-    make -C libtcp install PREFIX=$out
-  '';
-}
+  src = {
+    name = "source";
+    outPath = builtins.path {
+      inherit (finalAttrs.src) name;
+      path = ../.;
+    };
+  };
+  sourceRoot = "${finalAttrs.src.name}/libtcp";
+  makeFlags = [
+    "MODE=both"
+    "PREFIX=${placeholder "out"}"
+  ];
+  setupHook = ./setup-hook.sh;
+})

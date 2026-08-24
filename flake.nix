@@ -23,6 +23,25 @@
           libudp = pkgs.callPackage ./libudp { };
           libtftp = pkgs.callPackage ./libtftp { };
           libhttp = pkgs.callPackage ./libhttp { inherit libtcp; };
+
+          mp1 = pkgs.callPackage ./MP1 { inherit libtcp; };
+          mp2 = pkgs.callPackage ./MP2 {
+            inherit libtcp libsbcp;
+          };
+          mp3 = pkgs.callPackage ./MP3 {
+            inherit libudp libtftp;
+          };
+          mp4 = pkgs.callPackage ./MP4 {
+            inherit libtcp libhttp;
+          };
+
+          # Cheap view of an MP build exposing one binary as a `nix run` target.
+          appOf =
+            mp: name:
+            pkgs.runCommand name { meta.mainProgram = name; } ''
+              mkdir -p $out/bin
+              ln -s ${mp}/bin/${name} $out/bin/${name}
+            '';
         in
         {
           inherit
@@ -31,35 +50,27 @@
             libudp
             libtftp
             libhttp
+            mp1
+            mp2
+            mp3
+            mp4
             ;
 
           # MP1: Echo server/client
-          echos = pkgs.callPackage ./MP1/server.nix { inherit libtcp; };
-          echo = pkgs.callPackage ./MP1/client.nix { inherit libtcp; };
+          echos = appOf mp1 "echos";
+          echo = appOf mp1 "echo";
 
           # MP2: Simple Broadcast Chat Protocol
-          sbcp_server = pkgs.callPackage ./MP2/server.nix {
-            inherit libtcp libsbcp;
-          };
-          sbcp_client = pkgs.callPackage ./MP2/client.nix {
-            inherit libtcp libsbcp;
-          };
+          sbcp_server = appOf mp2 "sbcp_server";
+          sbcp_client = appOf mp2 "sbcp_client";
 
           # MP3: Trivial File Transfer Protocol
-          tftp_server = pkgs.callPackage ./MP3/server.nix {
-            inherit libudp libtftp;
-          };
+          tftp_server = appOf mp3 "tftp_server";
 
           # MP4: Simple HTTP Proxy
-          http_client = pkgs.callPackage ./MP4/client.nix {
-            inherit libtcp libhttp;
-          };
-          http_proxy = pkgs.callPackage ./MP4/proxy.nix {
-            inherit libtcp libhttp;
-          };
-          http_server = pkgs.callPackage ./MP4/server.nix {
-            inherit libtcp libhttp;
-          };
+          http_client = appOf mp4 "http_client";
+          http_proxy = appOf mp4 "http_proxy";
+          http_server = appOf mp4 "http_server";
         }
       );
       checks = forEachSystem (pkgs: {
