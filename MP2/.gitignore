@@ -24,3 +24,11 @@ sbcp-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# build artifacts
+server
+client
+
+# pub sub fifos
+*publish
+*subscribe

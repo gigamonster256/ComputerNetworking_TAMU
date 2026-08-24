@@ -6,18 +6,24 @@
 stdenv.mkDerivation {
   pname = "sbcp_server";
   version = "0.1.0";
+
   src = ./.;
+
   buildInputs = [
     libtcp
     libsbcp
   ];
-  buildPhase = ''
-    make -C src clean
-    make -C src server LIBTCP=${libtcp}/lib/libtcp.a LIBSBCP=${libsbcp}/lib/libsbcp.a INCLUDE="-I${libtcp}/include -I${libsbcp}/include"
-  '';
-  installPhase = ''
-    mkdir -p $out/bin
-    cp src/server $out/bin/sbcp_server
-  '';
+
+  makeFlags = [
+    "LIBTCP=${libtcp}/lib/libtcp.a"
+    "LIBTCP_INC=${libtcp}/include"
+    "LIBSBCP=${libsbcp}/lib/libsbcp.a"
+    "LIBSBCP_INC=${libsbcp}/include"
+  ];
+
+  buildFlags = [ "server" ];
+  installTargets = [ "install-server" ];
+  installFlags = [ "PREFIX=${placeholder "out"}" ];
+
   meta.mainProgram = "sbcp_server";
 }

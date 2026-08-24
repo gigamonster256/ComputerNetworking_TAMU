@@ -1,7 +1,7 @@
 # ComputerNetworking_TAMU
 Files for ECEN 602
 
-Most of the programs have simple makefiles to build, and are wrapped in nix derivations for convenience. If you don't have nix installed, you can cd to the Machine Problem `src` directory, run `make` and then run the applications.
+Most of the programs have simple makefiles to build, and are wrapped in nix derivations for convenience. If you don't have nix installed, you can cd to a Machine Problem directory, run `make` and then run the applications.
 
 ## Machine Problems
 ### MP1: Echo Server/Client

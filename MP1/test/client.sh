@@ -1,22 +1,20 @@
 #!/usr/bin/env bash
 
-port=7
+port=7777
 passed=0
 
 # build the project
-make -C ../src/ &> /dev/null
-
-# make sure server is not running
-killall echos &> /dev/null
+make -C ../ &> /dev/null
 
 # start the server
-../src/echos $port &> /dev/null &
+../echos $port &> /dev/null &
+server_PID=$!
 
 mkfifo client.in
 mkfifo client.out
 
 # start the client
-../src/echo 127.0.0.1 $port < client.in > client.out &
+../echo 127.0.0.1 $port < client.in > client.out &
 client_PID=$!
 
 sleep 1
@@ -51,7 +49,10 @@ rm client.in
 rm client.out
 
 # close the server
-killall echos &> /dev/null
+kill $server_PID &> /dev/null
+pkill -x echos &> /dev/null
+
+exit $passed
 
 
 

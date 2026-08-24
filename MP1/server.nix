@@ -1,15 +1,23 @@
-{ stdenv, libtcp }:
+{
+  stdenv,
+  libtcp,
+}:
 stdenv.mkDerivation {
   pname = "echos";
   version = "0.1.0";
+
   src = ./.;
+
   buildInputs = [ libtcp ];
-  buildPhase = ''
-    make -C src echos LIBTCP=${libtcp}/lib/libtcp.a INCLUDE=-I${libtcp}/include
-  '';
-  installPhase = ''
-    mkdir -p $out/bin
-    cp src/echos $out/bin
-  '';
+
+  makeFlags = [
+    "LIBTCP=${libtcp}/lib/libtcp.a"
+    "LIBTCP_INC=${libtcp}/include"
+  ];
+
+  buildFlags = [ "echos" ];
+  installTargets = [ "install-echos" ];
+  installFlags = [ "PREFIX=${placeholder "out"}" ];
+
   meta.mainProgram = "echos";
 }
