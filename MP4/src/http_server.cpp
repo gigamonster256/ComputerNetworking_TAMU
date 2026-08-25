@@ -158,15 +158,27 @@ int main(int argc, char* argv[]) {
             break;
           }
         }
-        http::Message request(request_str);
-        auto uri = request.get_uri();
+        std::unique_ptr<http::Message> request;
+        try {
+          request = std::make_unique<http::Message>(request_str);
+        } catch (const std::exception& e) {
+          // malformed or empty request (e.g. liveness probes that close
+          // without sending data) -- answer with 400 and move on
+          std::cerr << "Malformed request: " << e.what() << std::endl;
+          auto response = std::make_unique<http::Message>(
+              StatusCode(StatusCodeEnum::BAD_REQUEST));
+          auto response_str = response->to_string();
+          client->writen(response_str.c_str(), response_str.size());
+          return;
+        }
+        auto uri = request->get_uri();
         std::cerr << "Request for " << uri << std::endl;
 
         auto route = routes.find(uri);
         if (route != routes.end()) {
           std::cout << "200" << std::endl;
           // check for If-Modified-Since header
-          if (request.get_header("If-Modified-Since")) {
+          if (request->get_header("If-Modified-Since")) {
             std::cerr << "If-Modified-Since header found" << std::endl;
 
             // all other trests return 200 but test5 returns 304

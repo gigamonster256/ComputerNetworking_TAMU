@@ -108,12 +108,20 @@ int main(int argc, char* argv[]) {
             break;
           }
         }
-        http::Message request(request_str);
+        std::unique_ptr<http::Message> request;
+        try {
+          request = std::make_unique<http::Message>(request_str);
+        } catch (const std::exception& e) {
+          // malformed or empty request (e.g. liveness probes that close
+          // without sending data) -- drop the connection
+          std::cerr << "Malformed request: " << e.what() << std::endl;
+          return;
+        }
 
         auto now = time(nullptr);
 
         // get the requested uri
-        auto uri = request.get_uri();
+        auto uri = request->get_uri();
         std::cerr << "Request for " << uri << std::endl;
 
         // get the host and path

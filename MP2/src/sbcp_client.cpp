@@ -33,9 +33,12 @@ int main(int argc, char* argv[]) {
   // we should get an ACK message
   // or a NAK message if the username is in use
   message_t server_response;
-  client.readn(server_response.data(), sizeof(message_t::header_t));
-  client.readn(server_response.data() + sizeof(message_t::header_t),
-               server_response.get_length());
+  if (!client.readn(server_response.data(), sizeof(message_t::header_t)) ||
+      !client.readn(server_response.data() + sizeof(message_t::header_t),
+                    server_response.get_length())) {
+    std::cerr << "Failed to read response from server" << std::endl;
+    exit(EXIT_FAILURE);
+  }
 
   // we're connected
   if (server_response.get_type() == message_t::Type::ACK) {
@@ -116,14 +119,21 @@ int main(int argc, char* argv[]) {
     message_t msg;
     if (FD_ISSET(client.get_fd(), &readfds)) {
       // read from server
-      client.readn(msg.data(), sizeof(message_t::header_t));
+      if (!client.readn(msg.data(), sizeof(message_t::header_t))) {
+        std::cerr << "Server disconnected" << std::endl;
+        exit(EXIT_FAILURE);
+      }
       try {
         msg.validate();
       } catch (const MessageException& e) {
         std::cerr << e.what() << std::endl;
         continue;
       }
-      client.readn(msg.data() + sizeof(message_t::header_t), msg.get_length());
+      if (!client.readn(msg.data() + sizeof(message_t::header_t),
+                        msg.get_length())) {
+        std::cerr << "Server disconnected" << std::endl;
+        exit(EXIT_FAILURE);
+      }
       if (msg.get_type() == message_t::Type::FWD) {
         std::cout << msg.get_username() << ": " << msg.get_message()
                   << std::endl;

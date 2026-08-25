@@ -19,7 +19,14 @@ int main(int argc, char* argv[]) {
   }
 
   Client client(argv[1], std::stoi(argv[2]));
-  auto response = client.get(argv[3]);
+
+  std::unique_ptr<Message> response;
+  try {
+    response = client.get(argv[3]);
+  } catch (const std::exception& e) {
+    std::cerr << "Request failed: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
 
   std::cout << "Response status: " << response->get_status_code().to_string()
             << std::endl;

@@ -130,7 +130,7 @@ ssize_t Client::writen(const void* msgbuf, size_t len) {
   return n;
 }
 
-void Client::readn(void* msgbuf, size_t len) {
+bool Client::readn(void* msgbuf, size_t len) {
   size_t n = 0;
   while (n < len) {
     ssize_t n_read = ::read(sockfd, static_cast<char*>(msgbuf) + n, len - n);
@@ -139,13 +139,14 @@ void Client::readn(void* msgbuf, size_t len) {
         continue;
       }
       perror("TCPClient read");
-      exit(EXIT_FAILURE);
+      return false;
     } else if (n_read == 0) {
       fprintf(stderr, "TCPClient read EOF before finished\n");
-      exit(EXIT_FAILURE);
+      return false;
     }
     n += n_read;
   }
+  return true;
 }
 
 size_t Client::readline(void* msgbuf, size_t maxlen) {

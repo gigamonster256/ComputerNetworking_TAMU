@@ -15,7 +15,7 @@ class Client {
   ~Client();
 
   // simple I/O (crashes on error)
-  void readn(void* msgbuf, size_t len);
+  bool readn(void* msgbuf, size_t len);
 
   // block until all bytes are written
   ssize_t writen(const void* msgbuf, size_t len);
