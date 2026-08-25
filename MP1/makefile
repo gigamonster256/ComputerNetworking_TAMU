@@ -1,6 +1,11 @@
 CXX ?= g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -Werror
 
+UNAME := $(shell uname)
+ifeq ($(UNAME), Linux)
+	LIBS = -lpthread
+endif
+
 LIBTCP ?= ../libtcp/libtcp.a
 LIBTCP_INC ?= ../libtcp/include
 INCLUDE = -I$(LIBTCP_INC)
@@ -18,10 +23,10 @@ clean:
 	rm -rf *.dSYM
 
 echos: src/echo_server.cpp $(LIBTCP)
-	$(CXX) $(CXXFLAGS) -o echos $(INCLUDE) src/echo_server.cpp $(LIBTCP)
+	$(CXX) $(CXXFLAGS) -o echos $(INCLUDE) src/echo_server.cpp $(LIBTCP) $(LIBS)
 
 echo: src/echo_client.cpp $(LIBTCP)
-	$(CXX) $(CXXFLAGS) -o echo $(INCLUDE) src/echo_client.cpp $(LIBTCP)
+	$(CXX) $(CXXFLAGS) -o echo $(INCLUDE) src/echo_client.cpp $(LIBTCP) $(LIBS)
 
 install: echos echo
 	install -d $(DESTDIR)$(PREFIX)/bin

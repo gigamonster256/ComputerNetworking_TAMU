@@ -1,6 +1,11 @@
 CXX ?= g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -Werror
 
+UNAME := $(shell uname)
+ifeq ($(UNAME), Linux)
+	LIBS = -lpthread
+endif
+
 LIBTCP ?= ../libtcp/libtcp.a
 LIBTCP_INC ?= ../libtcp/include
 LIBSBCP ?= ../libsbcp/libsbcp.a
@@ -20,10 +25,10 @@ clean:
 	rm -rf *.dSYM
 
 client: src/sbcp_client.cpp $(LIBTCP) $(LIBSBCP)
-	$(CXX) $(CXXFLAGS) -o client $(INCLUDE) src/sbcp_client.cpp $(LIBSBCP) $(LIBTCP)
+	$(CXX) $(CXXFLAGS) -o client $(INCLUDE) src/sbcp_client.cpp $(LIBSBCP) $(LIBTCP) $(LIBS)
 
 server: src/sbcp_server.cpp $(LIBTCP) $(LIBSBCP)
-	$(CXX) $(CXXFLAGS) -o server $(INCLUDE) src/sbcp_server.cpp $(LIBSBCP) $(LIBTCP)
+	$(CXX) $(CXXFLAGS) -o server $(INCLUDE) src/sbcp_server.cpp $(LIBSBCP) $(LIBTCP) $(LIBS)
 
 install: server client
 	install -d $(DESTDIR)$(PREFIX)/bin
