@@ -23,6 +23,3 @@ HTTP client, proxy, and server built on `libhttp`
 Client command: `nix run .#http_client <proxy> <port> <url>`  
 Proxy command: `nix run .#http_proxy <ip> <port>`  
 Server command: `nix run .#http_server <port>`
-
-### MP5: Network Simulation
-TBD
