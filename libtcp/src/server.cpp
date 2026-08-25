@@ -202,6 +202,15 @@ void Server::run_server() {
     exit(EXIT_FAILURE);
   }
 
+  // allow quick rebinding after server restart (TIME_WAIT etc.)
+  int reuse = 1;
+  if (setsockopt(server_sock_fd, SOL_SOCKET, SO_REUSEADDR, &reuse,
+                 sizeof(reuse)) < 0) {
+    perror("TCPServer setsockopt SO_REUSEADDR");
+    close(server_sock_fd);
+    exit(EXIT_FAILURE);
+  }
+
   struct sockaddr_in6 server_addr;
   memset(&server_addr, 0, sizeof(server_addr));
   server_addr.sin6_family = AF_INET6;
