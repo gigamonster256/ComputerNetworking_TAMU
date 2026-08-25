@@ -13,27 +13,15 @@
       inherit (nixpkgs) lib;
       systems = lib.singleton "x86_64-linux";
       forEachSystem = f: lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+
+      # All libraries and machine problems, built against a given pkgs.
+      machineProblems = import ./packages.nix;
     in
     {
       packages = forEachSystem (
         pkgs:
         let
-          libtcp = pkgs.callPackage ./libtcp { };
-          libsbcp = pkgs.callPackage ./libsbcp { };
-          libudp = pkgs.callPackage ./libudp { };
-          libtftp = pkgs.callPackage ./libtftp { };
-          libhttp = pkgs.callPackage ./libhttp { inherit libtcp; };
-
-          mp1 = pkgs.callPackage ./MP1 { inherit libtcp; };
-          mp2 = pkgs.callPackage ./MP2 {
-            inherit libtcp libsbcp;
-          };
-          mp3 = pkgs.callPackage ./MP3 {
-            inherit libudp libtftp;
-          };
-          mp4 = pkgs.callPackage ./MP4 {
-            inherit libtcp libhttp;
-          };
+          mps = machineProblems { inherit pkgs; };
 
           # Cheap view of an MP build exposing one binary as a `nix run` target.
           appOf =
@@ -43,35 +31,26 @@
               ln -s ${mp}/bin/${name} $out/bin/${name}
             '';
         in
-        {
-          inherit
-            libtcp
-            libsbcp
-            libudp
-            libtftp
-            libhttp
-            mp1
-            mp2
-            mp3
-            mp4
-            ;
+        (
+          mps
+          // {
+            # MP1: Echo server/client
+            echos = appOf mps.mp1 "echos";
+            echo = appOf mps.mp1 "echo";
 
-          # MP1: Echo server/client
-          echos = appOf mp1 "echos";
-          echo = appOf mp1 "echo";
+            # MP2: Simple Broadcast Chat Protocol
+            sbcp_server = appOf mps.mp2 "sbcp_server";
+            sbcp_client = appOf mps.mp2 "sbcp_client";
 
-          # MP2: Simple Broadcast Chat Protocol
-          sbcp_server = appOf mp2 "sbcp_server";
-          sbcp_client = appOf mp2 "sbcp_client";
+            # MP3: Trivial File Transfer Protocol
+            tftp_server = appOf mps.mp3 "tftp_server";
 
-          # MP3: Trivial File Transfer Protocol
-          tftp_server = appOf mp3 "tftp_server";
-
-          # MP4: Simple HTTP Proxy
-          http_client = appOf mp4 "http_client";
-          http_proxy = appOf mp4 "http_proxy";
-          http_server = appOf mp4 "http_server";
-        }
+            # MP4: Simple HTTP Proxy
+            http_client = appOf mps.mp4 "http_client";
+            http_proxy = appOf mps.mp4 "http_proxy";
+            http_server = appOf mps.mp4 "http_server";
+          }
+        )
       );
       checks = forEachSystem (pkgs: {
         lint = pkgs.stdenv.mkDerivation {
@@ -94,6 +73,14 @@
           '';
         };
       });
+      nixosModules = {
+        default = ./modules/nixos;
+        echos = ./modules/nixos/echos.nix;
+        sbcp = ./modules/nixos/sbcp.nix;
+        tftp = ./modules/nixos/tftp.nix;
+        http-server = ./modules/nixos/http-server.nix;
+        http-proxy = ./modules/nixos/http-proxy.nix;
+      };
       devShells = forEachSystem (pkgs: {
         default = import ./shell.nix { inherit pkgs; };
         clang = import ./shell.nix {

@@ -23,3 +23,26 @@ HTTP client, proxy, and server built on `libhttp`
 Client command: `nix run .#http_client <proxy> <port> <url>`  
 Proxy command: `nix run .#http_proxy <ip> <port>`  
 Server command: `nix run .#http_server <port>`
+
+## NixOS Modules
+Each server is packaged as a NixOS module under `services.ecen602.*`, available
+via the flake's `nixosModules` output:
+
+```nix
+{
+  imports = [ inputs.ecen602.nixosModules.default ];
+
+  services.ecen602 = {
+    echos.enable = true;
+    sbcp.enable = true;
+    tftp.enable = true;
+    http-server.enable = true;
+    http-proxy.enable = true;
+  };
+}
+```
+
+Every module supports `package`, port/listen-address options, and
+`openFirewall`. The SBCP server and HTTP proxy accept IPv4 or IPv6
+`listenAddress` literals (IPv4 is mapped automatically).
+
