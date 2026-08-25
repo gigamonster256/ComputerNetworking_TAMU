@@ -51,29 +51,33 @@ typedef class Message {
 
    public:
     explicit constexpr Attribute(type_t type) noexcept
-        : type(type), length(0), payload() {}
+        : type(static_cast<type_t>(htons(static_cast<uint16_t>(type)))),
+          length(0),
+          payload() {}
     explicit Attribute(type_t, const char*);
     explicit Attribute(type_t, const char*, size_t);
     explicit Attribute(type_t, payload_t::client_count_t);
-    constexpr type_t get_type() const noexcept { return type; }
     constexpr length_t get_length() const noexcept { return ntohs(length); }
     constexpr size_t size() const noexcept {
       return sizeof(type) + sizeof(length) + get_length();
     }
+    type_t get_type() const noexcept {
+      return static_cast<type_t>(ntohs(static_cast<uint16_t>(type)));
+    }
     const char* get_username() const {
-      assert(type == type_t::USERNAME);
+      assert(get_type() == type_t::USERNAME);
       return payload.username;
     }
     const char* get_message() const {
-      assert(type == type_t::MESSAGE);
+      assert(get_type() == type_t::MESSAGE);
       return payload.message;
     }
     const char* get_reason() const {
-      assert(type == type_t::REASON);
+      assert(get_type() == type_t::REASON);
       return payload.reason;
     }
     payload_t::client_count_t get_client_count() const noexcept {
-      assert(type == type_t::CLIENT_COUNT);
+      assert(get_type() == type_t::CLIENT_COUNT);
       return ntohs(payload.client_count);
     }
 

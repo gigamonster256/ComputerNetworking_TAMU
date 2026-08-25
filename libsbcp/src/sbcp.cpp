@@ -10,9 +10,11 @@
 
 namespace sbcp {
 
-Message::Attribute::Attribute(type_t type, const char* value, size_t length)
-    : type(type), length(htons(0)), payload() {
-  switch (type) {
+Message::Attribute::Attribute(type_t t, const char* value, size_t length)
+    : type(static_cast<type_t>(htons(static_cast<uint16_t>(t)))),
+      length(htons(0)),
+      payload() {
+  switch (t) {
     case type_t::USERNAME:
       set_username(value, length);
       break;
@@ -27,9 +29,11 @@ Message::Attribute::Attribute(type_t type, const char* value, size_t length)
   }
 }
 
-Message::Attribute::Attribute(type_t type, const char* value)
-    : type(type), length(htons(0)), payload() {
-  switch (type) {
+Message::Attribute::Attribute(type_t t, const char* value)
+    : type(static_cast<type_t>(htons(static_cast<uint16_t>(t)))),
+      length(htons(0)),
+      payload() {
+  switch (t) {
     case type_t::USERNAME:
       set_username(value, strlen(value));
       break;
@@ -44,15 +48,17 @@ Message::Attribute::Attribute(type_t type, const char* value)
   }
 }
 
-Message::Attribute::Attribute(type_t type, payload_t::client_count_t value)
-    : type(type), length(htons(sizeof(value))), payload() {
-  assert(type == type_t::CLIENT_COUNT);
+Message::Attribute::Attribute(type_t t, payload_t::client_count_t value)
+    : type(static_cast<type_t>(htons(static_cast<uint16_t>(t)))),
+      length(htons(sizeof(value))),
+      payload() {
+  assert(t == type_t::CLIENT_COUNT);
   set_client_count(value);
 }
 
 void Message::Attribute::validate() const {
   auto length = get_length();
-  switch (type) {
+  switch (get_type()) {
     case type_t::USERNAME:
       if (length > SBCP_MAX_USERNAME_LENGTH) {
         throw MessageException("Username length exceeds maximum length");
@@ -80,7 +86,7 @@ void Message::Attribute::validate() const {
 
 void Message::Attribute::set_username(const char* value,
                                       size_t length) noexcept {
-  assert(type == type_t::USERNAME);
+  assert(get_type() == type_t::USERNAME);
   this->length = htons(length);
   if (length > SBCP_MAX_USERNAME_LENGTH) {
     this->length = htons(SBCP_MAX_USERNAME_LENGTH);
@@ -90,7 +96,7 @@ void Message::Attribute::set_username(const char* value,
 
 void Message::Attribute::set_message(const char* value,
                                      size_t length) noexcept {
-  assert(type == type_t::MESSAGE);
+  assert(get_type() == type_t::MESSAGE);
   this->length = htons(length);
   if (length > SBCP_MAX_MESSAGE_LENGTH) {
     this->length = htons(SBCP_MAX_MESSAGE_LENGTH);
@@ -99,7 +105,7 @@ void Message::Attribute::set_message(const char* value,
 }
 
 void Message::Attribute::set_reason(const char* value, size_t length) noexcept {
-  assert(type == type_t::REASON);
+  assert(get_type() == type_t::REASON);
   this->length = htons(length);
   if (length > SBCP_MAX_REASON_LENGTH) {
     this->length = htons(SBCP_MAX_REASON_LENGTH);
@@ -109,7 +115,7 @@ void Message::Attribute::set_reason(const char* value, size_t length) noexcept {
 
 void Message::Attribute::set_client_count(
     payload_t::client_count_t value) noexcept {
-  assert(type == type_t::CLIENT_COUNT);
+  assert(get_type() == type_t::CLIENT_COUNT);
   this->length = htons(sizeof(payload_t::client_count_t));
   payload.client_count = htons(value);
 }
