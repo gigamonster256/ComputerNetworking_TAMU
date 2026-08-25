@@ -20,6 +20,21 @@
 
 namespace sbcp {
 
+// htons on old gcc versions is not constexpr, so we implement our own version
+// here.
+// FIXME: remove once olympus has newer gcc versions that support constexpr
+// htons
+namespace detail {
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+constexpr inline uint16_t hton16(uint16_t value) noexcept { return value; }
+#else
+constexpr inline uint16_t hton16(uint16_t value) noexcept {
+  return static_cast<uint16_t>((static_cast<unsigned>(value) << 8) |
+                               (static_cast<unsigned>(value) >> 8));
+}
+#endif
+}  // namespace detail
+
 typedef class Message {
  public:
   typedef class Attribute {
@@ -51,13 +66,16 @@ typedef class Message {
 
    public:
     explicit constexpr Attribute(type_t type) noexcept
-        : type(static_cast<type_t>(htons(static_cast<uint16_t>(type)))),
+        : type(
+              static_cast<type_t>(detail::hton16(static_cast<uint16_t>(type)))),
           length(0),
           payload() {}
     explicit Attribute(type_t, const char*);
     explicit Attribute(type_t, const char*, size_t);
     explicit Attribute(type_t, payload_t::client_count_t);
-    constexpr length_t get_length() const noexcept { return ntohs(length); }
+    constexpr length_t get_length() const noexcept {
+      return detail::hton16(length);
+    }
     constexpr size_t size() const noexcept {
       return sizeof(type) + sizeof(length) + get_length();
     }
@@ -116,7 +134,7 @@ typedef class Message {
     constexpr header(version_t version, type_t type, length_t length)
         : version_and_type_upper(version >> 1),
           version_and_type_lower((version & 0x1) << 7 | type),
-          length(htons(length)) {}
+          length(detail::hton16(length)) {}
 
     constexpr type_t get_type() const noexcept {
       return Type(version_and_type_lower & 0x7F);
@@ -124,7 +142,9 @@ typedef class Message {
     constexpr version_t get_version() const noexcept {
       return (version_and_type_upper << 1) | (version_and_type_lower >> 7);
     }
-    constexpr length_t get_length() const noexcept { return ntohs(length); }
+    constexpr length_t get_length() const noexcept {
+      return detail::hton16(length);
+    }
     void set_type(type_t type) noexcept {
       version_and_type_lower = (version_and_type_lower & 0x80) | type;
     }
