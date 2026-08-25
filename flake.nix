@@ -52,27 +52,34 @@
           }
         )
       );
-      checks = forEachSystem (pkgs: {
-        lint = pkgs.stdenv.mkDerivation {
-          name = "computer-networking-lint";
+      checks = forEachSystem (
+        pkgs:
+        {
+          lint = pkgs.stdenv.mkDerivation {
+            name = "computer-networking-lint";
 
-          src = self;
+            src = self;
 
-          nativeBuildInputs = [
-            pkgs.fd
-            pkgs.clang-tools
-          ];
+            nativeBuildInputs = [
+              pkgs.fd
+              pkgs.clang-tools
+            ];
 
-          doCheck = true;
-          checkPhase = ''
-            bash ./lint.sh
-          '';
+            doCheck = true;
+            checkPhase = ''
+              bash ./lint.sh
+            '';
 
-          installPhase = ''
-            mkdir -p $out
-          '';
-        };
-      });
+            installPhase = ''
+              mkdir -p $out
+            '';
+          };
+        }
+        // import ./tests {
+          inherit pkgs;
+          mps = machineProblems { inherit pkgs; };
+        }
+      );
       nixosModules = {
         default = ./modules/nixos;
         echos = ./modules/nixos/echos.nix;

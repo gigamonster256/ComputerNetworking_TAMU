@@ -46,3 +46,22 @@ Every module supports `package`, port/listen-address options, and
 `openFirewall`. The SBCP server and HTTP proxy accept IPv4 or IPv6
 `listenAddress` literals (IPv4 is mapped automatically).
 
+## Integration Tests
+The MPs are exercised end-to-end by NixOS integration tests running in
+systemd-nspawn containers (`tests/`):
+
+```shell
+nix flake check          # lint + all tests
+nix build -L .#checks.x86_64-linux.mp2-sbcp-chat   # single test
+```
+
+Container tests boot in ~2-3s each and need no KVM. The Nix daemon on the
+machine running them requires:
+
+```nix
+nix.settings = {
+  experimental-features = [ "auto-allocate-uids" "cgroups" ];
+  auto-allocate-uids = true;
+  extra-system-features = [ "uid-range" ];
+};
+```
