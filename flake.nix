@@ -88,6 +88,14 @@
         http-server = ./modules/nixos/http-server.nix;
         http-proxy = ./modules/nixos/http-proxy.nix;
       };
+      homeManagerModules = {
+        default = ./modules/home-manager;
+        echos = ./modules/home-manager/echos.nix;
+        sbcp = ./modules/home-manager/sbcp.nix;
+        tftp = ./modules/home-manager/tftp.nix;
+        http-server = ./modules/home-manager/http-server.nix;
+        http-proxy = ./modules/home-manager/http-proxy.nix;
+      };
       devShells = forEachSystem (pkgs: {
         default = import ./shell.nix { inherit pkgs; };
         clang = import ./shell.nix {
