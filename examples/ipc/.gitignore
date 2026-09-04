@@ -1,0 +1,6 @@
+01_pipe
+02_fifo
+03_mq
+04_shm
+05_sem
+06_socketpair
