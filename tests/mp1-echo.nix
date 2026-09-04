@@ -4,7 +4,7 @@
 
   containers = {
     echos = {
-      imports = [ ../modules/nixos ];
+      imports = [ ../nix/modules/nixos ];
       virtualisation.vlans = [ 1 ];
       services.ecen602.echos = {
         enable = true;

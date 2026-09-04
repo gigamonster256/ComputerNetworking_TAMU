@@ -1,6 +1,6 @@
 { mps, ... }:
 {
-  imports = [ ../modules/nixos ];
+  imports = [ ../nix/modules/nixos ];
   virtualisation.vlans = [ 1 ];
   services.ecen602.sbcp = {
     enable = true;

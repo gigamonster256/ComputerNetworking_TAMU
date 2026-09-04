@@ -15,7 +15,7 @@
       forEachSystem = f: lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
 
       # All libraries and machine problems, built against a given pkgs.
-      machineProblems = import ./packages.nix;
+      machineProblems = import ./nix/packages.nix;
     in
     {
       packages = forEachSystem (
@@ -81,24 +81,24 @@
         }
       );
       nixosModules = {
-        default = ./modules/nixos;
-        echos = ./modules/nixos/echos.nix;
-        sbcp = ./modules/nixos/sbcp.nix;
-        tftp = ./modules/nixos/tftp.nix;
-        http-server = ./modules/nixos/http-server.nix;
-        http-proxy = ./modules/nixos/http-proxy.nix;
+        default = ./nix/modules/nixos;
+        echos = ./nix/modules/nixos/echos.nix;
+        sbcp = ./nix/modules/nixos/sbcp.nix;
+        tftp = ./nix/modules/nixos/tftp.nix;
+        http-server = ./nix/modules/nixos/http-server.nix;
+        http-proxy = ./nix/modules/nixos/http-proxy.nix;
       };
       homeManagerModules = {
-        default = ./modules/home-manager;
-        echos = ./modules/home-manager/echos.nix;
-        sbcp = ./modules/home-manager/sbcp.nix;
-        tftp = ./modules/home-manager/tftp.nix;
-        http-server = ./modules/home-manager/http-server.nix;
-        http-proxy = ./modules/home-manager/http-proxy.nix;
+        default = ./nix/modules/home-manager;
+        echos = ./nix/modules/home-manager/echos.nix;
+        sbcp = ./nix/modules/home-manager/sbcp.nix;
+        tftp = ./nix/modules/home-manager/tftp.nix;
+        http-server = ./nix/modules/home-manager/http-server.nix;
+        http-proxy = ./nix/modules/home-manager/http-proxy.nix;
       };
       devShells = forEachSystem (pkgs: {
-        default = import ./shell.nix { inherit pkgs; };
-        clang = import ./shell.nix {
+        default = import ./nix/shell.nix { inherit pkgs; };
+        clang = import ./nix/shell.nix {
           inherit pkgs;
           stdenv = pkgs.clangStdenv;
         };

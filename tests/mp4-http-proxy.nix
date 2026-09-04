@@ -4,7 +4,7 @@
 
   containers = {
     web = {
-      imports = [ ../modules/nixos ];
+      imports = [ ../nix/modules/nixos ];
       virtualisation.vlans = [ 1 ];
       services.ecen602.http-server = {
         enable = true;
@@ -15,7 +15,7 @@
     };
 
     proxy = {
-      imports = [ ../modules/nixos ];
+      imports = [ ../nix/modules/nixos ];
       virtualisation.vlans = [ 1 ];
       services.ecen602.http-proxy = {
         enable = true;
