@@ -29,20 +29,17 @@ class UNIXtoNetasciiStreamBuf : public std::streambuf {
     }
 
     // LF -> CRLF
-    // CRLF -> CRLF
-    // CR!LF -> CR\0
+    // CR -> CR\0 (always, even when immediately followed by LF)
     if (buffer[0] == '\n') {
       buffer[0] = '\r';
       buffer[1] = '\n';
       bytesRead = 2;
     } else if (buffer[0] == '\r') {
-      // Peek at the next character
-      char nextChar = file.peek();
-      if (nextChar == '\n') {
-        file.read(buffer + 1, 1);
-      } else {
-        buffer[1] = '\0';
-      }
+      // A CR in the data is always escaped as CR NUL (RFC 764), even when it
+      // is immediately followed by an LF; the LF is then encoded as its own
+      // CRLF on the next iteration. Collapsing "CRLF" into a single line
+      // ending is lossy and makes the transform non-invertible.
+      buffer[1] = '\0';
       bytesRead = 2;
     }
 
